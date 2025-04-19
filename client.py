@@ -1,6 +1,8 @@
 import asyncio
 from typing import Optional
 from contextlib import AsyncExitStack
+import argparse
+import sys
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
@@ -14,12 +16,12 @@ load_dotenv()  # load environment variables from .env
 
 
 class MCPClient:
-    def __init__(self):
+    def __init__(self, model: str = "qwen2.5:latest"):
         # Initialize session and client objects
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
         self.ollama = ollama.AsyncClient()
-    # methods will go here
+        self.model = model
 
     async def connect_to_server(self, server_script_path: str):
         """Connect to an MCP server
@@ -71,7 +73,7 @@ class MCPClient:
 
         # Initial Ollama API call
         response: ChatResponse = await self.ollama.chat(
-            model="qwen2.5:latest",
+            model=self.model,
             messages=messages,
             tools=available_tools,
             options={"num_predict": 1000}
@@ -79,8 +81,6 @@ class MCPClient:
 
         # Process response and handle tool calls
         final_text = []
-
-        
         
         if hasattr(response.message, 'content') and response.message.content:
             final_text.append(response.message.content)            
@@ -93,8 +93,6 @@ class MCPClient:
                 # Execute tool call
                 result = await self.session.call_tool(tool_name, tool_args)
                 print(f"\n[Calling tool {tool_name} with args {tool_args}]\n")
-                # final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
-                # print(f"[Tool result: {result.content[0].text}]")
                 
                 messages.append({
                     "role": "tool",
@@ -104,10 +102,10 @@ class MCPClient:
 
                 # Get next response from Ollama with the tool results
                 response = await self.ollama.chat(
-                    model="qwen2.5:latest",
+                    model=self.model,
                     messages=messages,
                     tools=available_tools,
-                    options={"num_predict": 500}
+                    # options={"num_predict": 500}
                 )
 
                 final_text.append(response.message.content)
@@ -117,6 +115,7 @@ class MCPClient:
     async def chat_loop(self):
         """Run an interactive chat loop"""
         print("\nMCP Client Started!")
+        print(f"Using Ollama model: {self.model}")
         print("Type your queries or 'quit' to exit.")
 
         while True:
@@ -142,17 +141,17 @@ class MCPClient:
 
 
 async def main():
-    if len(sys.argv) < 2:
-        print("Usage: python client.py <path_to_server_script>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="MCP Client")
+    parser.add_argument("--mcp-server", required=True, help="Path to the server script (.py or .js)")
+    parser.add_argument("--model", default="qwen2.5:latest", help="Ollama model to use for API calls")
+    args = parser.parse_args()
 
-    client = MCPClient()
+    client = MCPClient(model=args.model)
     try:
-        await client.connect_to_server(sys.argv[1])
+        await client.connect_to_server(args.mcp_server)
         await client.chat_loop()
     finally:
         await client.cleanup()
 
 if __name__ == "__main__":
-    import sys
     asyncio.run(main())

@@ -1,0 +1,48 @@
+# MCP Local Client POC
+
+A simple client implementation for interacting with Model Context Protocol (MCP) servers using Ollama models.
+
+## Overview
+
+This project provides a client that connects to an MCP server and uses Ollama to process queries, enabling tool use capabilities. The client establishes a connection to an MCP server, sends queries to Ollama, and handles any tool calls that the model might make.
+
+## Requirements
+
+- Python 3.8+
+- Ollama running locally
+- UV package manager
+
+## Installation
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install .
+```
+
+## Usage
+
+Run the client with:
+
+```bash
+uv run client.py --mcp-server <path_to_mcp_server> --model <ollama_model>
+```
+
+### Arguments
+
+- `--mcp-server`: Path to the MCP server script (.py or .js)
+- `--model`: Ollama model to use (default: "qwen2.5:latest")
+
+### Example
+
+```bash
+uv run client.py --mcp-server /path/to/weather.py --model llama3:latest
+```
+
+## Features
+
+- Connect to any MCP-compliant server
+- Use different Ollama models for processing
+- Support for Python and JavaScript MCP servers
+- Interactive chat interface
+- Tool usage capabilities
