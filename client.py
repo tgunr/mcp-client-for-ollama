@@ -7,6 +7,8 @@ from mcp.client.stdio import stdio_client
 from dotenv import load_dotenv
 import ollama
 from ollama import ChatResponse
+from rich.console import Console
+from rich.markdown import Markdown
 
 load_dotenv()  # load environment variables from .env
 
@@ -90,7 +92,7 @@ class MCPClient:
 
                 # Execute tool call
                 result = await self.session.call_tool(tool_name, tool_args)
-                print(f"[Calling tool {tool_name} with args {tool_args}]")
+                print(f"\n[Calling tool {tool_name} with args {tool_args}]\n")
                 # final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
                 # print(f"[Tool result: {result.content[0].text}]")
                 
@@ -125,7 +127,11 @@ class MCPClient:
                     break
 
                 response = await self.process_query(query)
-                print("\n" + response)
+                if response:
+                    console = Console()
+                    console.print(Markdown(response))
+                else:
+                    print("No response received.")
 
             except Exception as e:
                 print(f"\nError: {str(e)}")
