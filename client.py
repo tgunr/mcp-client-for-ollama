@@ -91,16 +91,13 @@ class MCPClient:
                 # Execute tool call
                 result = await self.session.call_tool(tool_name, tool_args)
                 print(f"[Calling tool {tool_name} with args {tool_args}]")
-                final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
-                print(f"[Tool result: {result.content[0].text}]")
+                # final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
+                # print(f"[Tool result: {result.content[0].text}]")
                 
                 messages.append({
-                    "role": "assistant",
-                    "content": response.message.content
-                })
-                messages.append({
-                    "role": "user",
-                    "content": result.content[0].text                        
+                    "role": "tool",
+                    "content": result.content[0].text,
+                    "name": tool_name
                 })            
 
                 # Get next response from Ollama with the tool results
@@ -108,7 +105,7 @@ class MCPClient:
                     model="qwen2.5:latest",
                     messages=messages,
                     tools=available_tools,
-                    options={"num_predict": 1000}
+                    options={"num_predict": 500}
                 )
 
                 final_text.append(response.message.content)
