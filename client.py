@@ -114,7 +114,7 @@ class MCPClient:
         self.clear_console()
         
         # Display model selection interface
-        self.console.print(Panel("[bold]Model Selection Interface[/bold]", border_style="blue", expand=False))
+        self.console.print(Panel("[bold]Model Selection[/bold]", border_style="blue", expand=False))
         
         # Sort models by name for easier reading
         models.sort(key=lambda x: x.get("name", ""))
@@ -421,10 +421,21 @@ class MCPClient:
         await self.connect_to_servers([server_script_path])
 
     def select_tools(self):
-        """Let the user select which tools to enable using interactive prompts"""
+        """Let the user select which tools to enable using interactive prompts with server-based grouping"""
         # Save the original tool states in case the user cancels
         original_states = self.enabled_tools.copy()
         show_descriptions = False  # Default: don't show descriptions
+        
+        # Group tools by server
+        servers = {}
+        for tool in self.available_tools:
+            server_name, tool_name = tool.name.split('.', 1) if '.' in tool.name else ("default", tool.name)
+            if server_name not in servers:
+                servers[server_name] = []
+            servers[server_name].append(tool)
+        
+        # Sort servers by name for consistent display
+        sorted_servers = sorted(servers.items(), key=lambda x: x[0])
         
         # Clear the console to create a "new console" effect
         self.clear_console()
@@ -433,15 +444,47 @@ class MCPClient:
             # Show the tool selection interface
             self.console.print(Panel("[bold]Tool Selection Interface[/bold]", border_style="green", expand=False))
             
-            for i, tool in enumerate(self.available_tools):
-                status = "[green]✓[/green]" if self.enabled_tools[tool.name] else "[red]✗[/red]"
-                self.console.print(f"{i+1}. {status} [bold blue]{tool.name}[/bold blue]")
-                if show_descriptions and hasattr(tool, 'description') and tool.description:
-                    description = Text.from_markup(f"{tool.description}")
-                    self.console.print(f"   {description}")
-                        
+            # Display the server groups and their tools
+            self.console.print(Panel("[bold]Available Tools[/bold]", border_style="blue", expand=False))
+            
+            tool_index = 1  # Global tool index across all servers
+            
+            # Create a mapping of display indices to tools for accurate selection
+            index_to_tool = {}
+            
+            # Calculate and display server stats and tools
+            for server_idx, (server_name, server_tools) in enumerate(sorted_servers):
+                enabled_count = sum(1 for tool in server_tools if self.enabled_tools[tool.name])
+                total_count = len(server_tools)
+                
+                # Determine server status indicator
+                if enabled_count == total_count:
+                    server_status = "[green]✓[/green]"  # All enabled
+                elif enabled_count == 0:
+                    server_status = "[red]✗[/red]"      # None enabled
+                else:
+                    server_status = "[yellow]~[/yellow]"  # Some enabled
+                
+                self.console.print(f"S{server_idx+1}. {server_status} [bold blue]{server_name}[/bold blue] ({enabled_count}/{total_count} tools)")
+                
+                # Display individual tools for this server
+                for tool in server_tools:
+                    status = "[green]✓[/green]" if self.enabled_tools[tool.name] else "[red]✗[/red]"
+                    self.console.print(f"   {tool_index}. {status} {tool.name}")
+                    
+                    # Store the mapping from display index to tool
+                    index_to_tool[tool_index] = tool
+                    
+                    if show_descriptions and hasattr(tool, 'description') and tool.description:
+                        description = Text.from_markup(f"{tool.description}")
+                        self.console.print(f"      {description}")
+                    
+                    tool_index += 1
+            
+            # Display the command panel
             self.console.print(Panel("[bold yellow]Commands[/bold yellow]", expand=False))
-            self.console.print(f"• Enter [bold magenta]numbers[/bold magenta][bold yellow] separated by commas[/bold yellow] to toggle tools (e.g. [bold]1,3,5[/bold])")
+            self.console.print(f"• Enter [bold magenta]numbers[/bold magenta][bold yellow] separated by commas or ranges[/bold yellow] to toggle tools (e.g. [bold]1,3,5-8[/bold])")
+            self.console.print(f"• Enter [bold magenta]S + number[/bold magenta] to toggle all tools in a server (e.g. [bold]S1[/bold] or [bold]s2[/bold])")
             self.console.print("• [bold]a[/bold] or [bold]all[/bold] - Enable all tools")
             self.console.print("• [bold]n[/bold] or [bold]none[/bold] - Disable all tools")
             self.console.print(f"• [bold]d[/bold] or [bold]desc[/bold] - {'Hide' if show_descriptions else 'Show'} descriptions")
@@ -493,26 +536,71 @@ class MCPClient:
                 self.console.print(f"[cyan]Descriptions {'shown' if show_descriptions else 'hidden'}![/cyan]")
                 continue
             
+            # Check for server toggle (S1, S2, etc.)
+            if selection.startswith('s') and len(selection) > 1 and selection[1:].isdigit():
+                server_idx = int(selection[1:]) - 1
+                if 0 <= server_idx < len(sorted_servers):
+                    server_name, server_tools = sorted_servers[server_idx]
+                    
+                    # Check if all tools in this server are currently enabled
+                    all_enabled = all(self.enabled_tools[tool.name] for tool in server_tools)
+                    
+                    # Toggle accordingly: if all are enabled, disable all; otherwise enable all
+                    new_state = not all_enabled
+                    for tool in server_tools:
+                        self.enabled_tools[tool.name] = new_state
+                    
+                    self.clear_console()
+                    status = "enabled" if new_state else "disabled"
+                    self.console.print(f"[green]All tools in server '{server_name}' {status}![/green]")
+                else:
+                    self.clear_console()
+                    self.console.print(f"[red]Invalid server number: S{server_idx+1}. Must be between S1 and S{len(sorted_servers)}[/red]")
+                continue
+            
+            # Process individual tool selections and ranges
             try:
-                selections = [int(x.strip()) for x in selection.split(',') if x.strip()]
                 valid_toggle = False
                 
+                # Split the input by commas to handle multiple selections
+                parts = [part.strip() for part in selection.split(',') if part.strip()]
+                selections = []
+                
+                for part in parts:
+                    # Check if this part is a range (e.g., "5-8")
+                    if '-' in part:
+                        try:
+                            start, end = map(int, part.split('-', 1))
+                            selections.extend(range(start, end + 1))
+                        except ValueError:
+                            self.console.print(f"[red]Invalid range: {part}[/red]")
+                    else:
+                        # Otherwise, treat as a single number
+                        try:
+                            selections.append(int(part))
+                        except ValueError:
+                            self.console.print(f"[red]Invalid selection: {part}[/red]")
+                
+                # Process the selections using our accurate mapping
                 for idx in selections:
-                    if 1 <= idx <= len(self.available_tools):
-                        tool_name = self.available_tools[idx-1].name
-                        self.enabled_tools[tool_name] = not self.enabled_tools[tool_name]
+                    if idx in index_to_tool:
+                        tool = index_to_tool[idx]
+                        self.enabled_tools[tool.name] = not self.enabled_tools[tool.name]
                         valid_toggle = True
                     else:
-                        self.console.print(f"[red]Invalid number: {idx}. Must be between 1 and {len(self.available_tools)}[/red]")
+                        self.console.print(f"[red]Invalid number: {idx}. Must be between 1 and {len(index_to_tool)}[/red]")
                 
                 if valid_toggle:
-                    # Only clear the console if at least one valid tool was toggled
                     self.clear_console()
+                    self.console.print("[green]Tools toggled successfully![/green]")
+                else:
+                    self.clear_console()
+                    self.console.print("[yellow]No valid tool numbers provided.[/yellow]")
             
             except ValueError:
                 self.clear_console()
-                self.console.print("[red]Invalid input. Please enter numbers separated by commas.[/red]")
-                
+                self.console.print("[red]Invalid input. Please enter numbers, ranges, or server designators.[/red]")
+
     def _display_chat_history(self):
         """Display chat history when returning to the main chat interface"""
         if self.chat_history:
