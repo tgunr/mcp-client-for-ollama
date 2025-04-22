@@ -371,7 +371,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mcp-local-client-poc"
+name = "mcp-client-for-ollama"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

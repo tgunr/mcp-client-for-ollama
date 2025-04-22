@@ -1,5 +1,5 @@
 [project]
-name = "mcp-local-client-poc"
+name = "mcp-client-for-ollama"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
