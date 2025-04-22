@@ -7,6 +7,8 @@ from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.client.stdio import stdio_client
 import ollama
 from ollama import ChatResponse
+from prompt_toolkit import PromptSession
+from prompt_toolkit.styles import Style
 from rich import print as rprint
 from rich.columns import Columns
 from rich.console import Console
@@ -29,6 +31,10 @@ class MCPClient:
         self.enabled_tools: Dict[str, bool] = {}
         self.console = Console()
         self.chat_history = []  # Add chat history list to store interactions
+        self.prompt_session = PromptSession()
+        self.prompt_style = Style.from_dict({
+            'prompt': 'ansibrightyellow bold',
+        })
 
     def clear_console(self):
         """Clear the console screen"""
@@ -274,6 +280,20 @@ class MCPClient:
 
         return "\n".join(final_text)
 
+    async def get_user_input(self, prompt_text: str = "\nQuery") -> str:
+        """Get user input with full keyboard navigation support"""
+        try:
+            # Use prompt_async instead of prompt
+            user_input = await self.prompt_session.prompt_async(
+                f"{prompt_text}: ",
+                style=self.prompt_style
+            )
+            return user_input
+        except KeyboardInterrupt:
+            return "quit"
+        except EOFError:
+            return "quit"
+
     async def chat_loop(self):
         """Run an interactive chat loop"""
         self.console.print(Panel.fit("[bold green]MCP Client Started![/bold green]"))
@@ -282,7 +302,8 @@ class MCPClient:
 
         while True:
             try:
-                query = Prompt.ask("\n[bold green]Query[/bold green]")
+                # Use await to call the async method
+                query = await self.get_user_input("Query")
 
                 if query.lower() in ['quit', 'q']:
                     self.console.print("[yellow]Exiting...[/yellow]")
@@ -294,6 +315,11 @@ class MCPClient:
                     
                 if query.lower() in ['help', 'h']:
                     self.print_help()
+                    continue
+
+                # Check if query is too short and not a special command
+                if len(query.strip()) < 5:
+                    self.console.print("[yellow]Query must be at least 5 characters long.[/yellow]")
                     continue
 
                 response = await self.process_query(query)
