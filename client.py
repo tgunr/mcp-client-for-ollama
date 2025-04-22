@@ -29,7 +29,7 @@ load_dotenv()  # load environment variables from .env
 DEFAULT_CLAUDE_CONFIG = os.path.expanduser("~/Library/Application Support/Claude/claude_desktop_config.json")
 
 class MCPClient:
-    def __init__(self, model: str = "qwen2.5:latest"):
+    def __init__(self, model: str):
         # Initialize session and client objects
         self.sessions = {}  # Dict to store multiple sessions
         self.exit_stack = AsyncExitStack()
@@ -806,15 +806,32 @@ class MCPClient:
                     self.console.print("[yellow]Query must be at least 5 characters long.[/yellow]")
                     continue
 
-                response = await self.process_query(query)
-                if response:
-                    self.console.print(Markdown(response))
-                    # Show context info after response if enabled
-                    if self.show_context_info:
-                        self.display_context_stats()
-                else:
-                    self.console.print("[red]No response received.[/red]")
+                try:
+                    response = await self.process_query(query)
+                    if response:
+                        self.console.print(Markdown(response))
+                        # Show context info after response if enabled
+                        if self.show_context_info:
+                            self.display_context_stats()
+                    else:
+                        self.console.print("[red]No response received.[/red]")
+                except ollama.ResponseError as e:
+                    # Extract error message without the traceback
+                    error_msg = str(e)
+                    self.console.print(Panel(f"[bold red]Ollama Error:[/bold red] {error_msg}", 
+                                          border_style="red", expand=False))
+                    
+                    # If it's a "model not found" error, suggest how to fix it
+                    if "not found" in error_msg.lower() and "try pulling it first" in error_msg.lower():
+                        model_name = self.model
+                        self.console.print(f"\n[yellow]Try running this command to download the model:[/yellow]")
+                        self.console.print(f"[bold cyan]ollama pull {model_name}[/bold cyan]\n")
 
+            except ollama.ConnectionError as e:
+                self.console.print(Panel(f"[bold red]Connection Error:[/bold red] {str(e)}", 
+                                      border_style="red", expand=False))
+                self.console.print("[yellow]Make sure Ollama is running with 'ollama serve'[/yellow]")
+                
             except Exception as e:
                 self.console.print(f"[bold red]Error:[/bold red] {str(e)}")
                 self.console.print_exception()
