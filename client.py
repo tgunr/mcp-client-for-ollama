@@ -43,6 +43,11 @@ class MCPClient:
         self.prompt_style = Style.from_dict({
             'prompt': 'ansibrightyellow bold',
         })
+        # Context retention settings
+        self.retain_context = True  # By default, retain conversation context
+        self.show_context_info = False  # By default, don't show context info after each message
+        self.approx_token_count = 0  # Approximate token count for the conversation
+        self.token_count_per_char = 0.25  # Rough approximation of tokens per character
         
     async def check_ollama_running(self) -> bool:
         """Check if Ollama is running by making a request to its API
@@ -624,12 +629,32 @@ class MCPClient:
 
     async def process_query(self, query: str) -> str:
         """Process a query using Ollama and available tools"""
-        messages = [
-            {
-                "role": "user",
-                "content": query
-            }
-        ]
+        # Create base message with current query
+        current_message = {
+            "role": "user",
+            "content": query
+        }
+        
+        # Build messages array based on context retention setting
+        if self.retain_context and self.chat_history:
+            # Include previous messages for context
+            messages = []
+            for entry in self.chat_history:
+                # Add user message
+                messages.append({
+                    "role": "user",
+                    "content": entry["query"]
+                })
+                # Add assistant response 
+                messages.append({
+                    "role": "assistant",
+                    "content": entry["response"]
+                })
+            # Add the current query
+            messages.append(current_message)
+        else:
+            # No context retention - just use current query
+            messages = [current_message]
 
         # Filter tools based on user selection
         enabled_tool_objects = [tool for tool in self.available_tools if self.enabled_tools.get(tool.name, False)]
@@ -701,10 +726,19 @@ class MCPClient:
                 self.console.print() 
                 final_text.append(response.message.content)
 
+        # Create the final response text
+        response_text = "\n".join(final_text)
+        
         # Append query and response to chat history
-        self.chat_history.append({"query": query, "response": "\n".join(final_text)})
+        self.chat_history.append({"query": query, "response": response_text})
+        
+        # Update token count estimation (rough approximation)
+        query_chars = len(query)
+        response_chars = len(response_text)
+        estimated_tokens = int((query_chars + response_chars) * self.token_count_per_char)
+        self.approx_token_count += estimated_tokens
 
-        return "\n".join(final_text)
+        return response_text
 
     async def get_user_input(self, prompt_text: str = "\nQuery") -> str:
         """Get user input with full keyboard navigation support"""
@@ -748,6 +782,24 @@ class MCPClient:
                 if query.lower() in ['model', 'm']:
                     await self.select_model()
                     continue
+                
+                if query.lower() in ['context', 'c']:
+                    self.toggle_context_retention()
+                    continue
+                
+                if query.lower() in ['clear', 'cc']:
+                    self.clear_context()
+                    continue
+
+                if query.lower() in ['contextinfo', 'ci']:
+                    self.toggle_context_display()
+                    continue
+                    
+                if query.lower() in ['cls', 'clear-screen']:
+                    self.clear_console()
+                    self.display_current_model()
+                    self.display_available_tools()
+                    continue
 
                 # Check if query is too short and not a special command
                 if len(query.strip()) < 5:
@@ -757,6 +809,9 @@ class MCPClient:
                 response = await self.process_query(query)
                 if response:
                     self.console.print(Markdown(response))
+                    # Show context info after response if enabled
+                    if self.show_context_info:
+                        self.display_context_stats()
                 else:
                     self.console.print("[red]No response received.[/red]")
 
@@ -768,11 +823,51 @@ class MCPClient:
         """Print available commands"""
         self.console.print(Panel(
             "[yellow]Available Commands:[/yellow]\n"
+            "• Type [bold]clear[/bold] or [bold]cc[/bold] to clear conversation context\n"
+            "• Type [bold]cls[/bold] or [bold]clear-screen[/bold] to clear the terminal screen\n"
+            "• Type [bold]context[/bold] or [bold]c[/bold] to toggle context retention\n"
+            "• Type [bold]contextinfo[/bold] or [bold]ci[/bold] to toggle context info display\n"
             "• Type [bold]help[/bold] or [bold]h[/bold] to show this help message\n"
-            "• Type [bold]tools[/bold] or [bold]t[/bold] to configure tools\n"
             "• Type [bold]model[/bold] or [bold]m[/bold] to select a model\n"
-            "• Type [bold]quit[/bold] or [bold]q[/bold] to exit", 
+            "• Type [bold]quit[/bold] or [bold]q[/bold] to exit\n"
+            "• Type [bold]tools[/bold] or [bold]t[/bold] to configure tools", 
             title="Help", border_style="yellow", expand=False))
+
+    def toggle_context_retention(self):
+        """Toggle whether to retain previous conversation context when sending queries"""
+        self.retain_context = not self.retain_context
+        status = "enabled" if self.retain_context else "disabled"
+        self.console.print(f"[green]Context retention {status}![/green]")
+        # Display current context stats
+        self.display_context_stats()
+        
+    def clear_context(self):
+        """Clear conversation history and token count"""
+        original_history_length = len(self.chat_history)
+        self.chat_history = []
+        self.approx_token_count = 0
+        self.console.print(f"[green]Context cleared! Removed {original_history_length} conversation entries.[/green]")
+        
+    def display_context_stats(self):
+        """Display information about the current context window usage"""
+        history_count = len(self.chat_history)
+        
+        self.console.print(Panel(
+            f"[bold]Context Statistics[/bold]\n"
+            f"Context retention: [{'green' if self.retain_context else 'red'}]{'Enabled' if self.retain_context else 'Disabled'}[/{'green' if self.retain_context else 'red'}]\n"
+            f"Conversation entries: {history_count}\n"
+            f"Approximate token count: {self.approx_token_count:,}",
+            title="Context Window", border_style="cyan", expand=False
+        ))
+
+    def toggle_context_display(self):
+        """Toggle whether to show context stats after each message"""
+        self.show_context_info = not self.show_context_info
+        status = "enabled" if self.show_context_info else "disabled"
+        self.console.print(f"[green]Context info display {status}![/green]")
+        # Show context stats once after toggling
+        if self.show_context_info:
+            self.display_context_stats()
 
     async def cleanup(self):
         """Clean up resources"""

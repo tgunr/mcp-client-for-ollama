@@ -13,7 +13,7 @@ This client was created by adapting the Python example for MCP client from the [
 - Connect to multiple MCP servers simultaneously
 - Interactive colorful terminal interface using Rich
 - Tool selection and management during chat
-- Chat history tracking
+- Chat history tracking with context management
 - Support for both Python and JavaScript MCP servers
 - Auto-discovery of servers from Claude's configuration
 - List and switch Ollama models during a session
@@ -81,6 +81,10 @@ During the chat session, the following commands are available:
 | `help` | `h` | Display help and available commands |
 | `tools` | `t` | Open the tool selection interface |
 | `model` | `m` | List and select a different Ollama model |
+| `context` | `c` | Toggle context retention (on/off) |
+| `clear` | `cc` | Clear conversation history and context |
+| `contextinfo` | `ci` | Toggle displaying context statistics after each message |
+| `cls` | `clear-screen` | Clear the terminal screen |
 | `quit` | `q` | Exit the client |
 
 In the tool selection interface:
