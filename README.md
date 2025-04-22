@@ -17,6 +17,7 @@ This client was created by adapting the Python example for MCP client from the [
 - Support for both Python and JavaScript MCP servers
 - Auto-discovery of servers from Claude's configuration
 - List and switch Ollama models during a session
+- Save and load tool configurations between sessions
 
 ## Requirements
 
@@ -85,6 +86,9 @@ During the chat session, the following commands are available:
 | `clear` | `cc` | Clear conversation history and context |
 | `contextinfo` | `ci` | Toggle displaying context statistics after each message |
 | `cls` | `clear-screen` | Clear the terminal screen |
+| `save-config` | `sc` | Save current tool and model configuration to a file |
+| `load-config` | `lc` | Load tool and model configuration from a file |
+| `reset-config` | `rc` | Reset configuration to defaults (all tools enabled) |
 | `quit` | `q` | Exit the client |
 
 In the tool selection interface:
@@ -98,6 +102,20 @@ In the tool selection interface:
 In the model selection interface:
 - Enter the number of the model you want to use
 - `q` or `quit` - Cancel and return to chat
+
+### Configuration Management
+
+The client supports saving and loading tool configurations between sessions:
+
+- When using `save-config`, you can provide a name for the configuration or use the default
+- Configurations are stored in `~/.config/mcp-client/` directory
+- The default configuration is saved as `~/.config/mcp-client/config.json`
+- Named configurations are saved as `~/.config/mcp-client/{name}.json`
+
+The configuration saves:
+- Current model selection
+- Enabled/disabled status of all tools
+- Context retention settings
 
 ### Server Configuration Format
 

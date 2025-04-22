@@ -9,6 +9,7 @@ from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.client.stdio import stdio_client
 import ollama
 from ollama import ChatResponse
+from pathlib import Path
 from prompt_toolkit import PromptSession
 from prompt_toolkit.styles import Style
 from rich import print as rprint
@@ -27,6 +28,12 @@ load_dotenv()  # load environment variables from .env
 
 # Default Claude config file location
 DEFAULT_CLAUDE_CONFIG = os.path.expanduser("~/Library/Application Support/Claude/claude_desktop_config.json")
+# Default config directory and filename for MCP client
+DEFAULT_CONFIG_DIR = os.path.expanduser("~/.config/mcp-client-for-ollama")
+if not os.path.exists(DEFAULT_CONFIG_DIR):
+    os.makedirs(DEFAULT_CONFIG_DIR)
+    
+DEFAULT_CONFIG_FILE = "config.json"
 
 class MCPClient:
     def __init__(self, model: str):
@@ -800,6 +807,32 @@ class MCPClient:
                     self.display_current_model()
                     self.display_available_tools()
                     continue
+                    
+                if query.lower() in ['save-config', 'sc']:
+                    # Ask for config name, defaulting to "default"
+                    config_name = await self.get_user_input("Config name (or press Enter for default)")
+                    if not config_name or config_name.strip() == "":
+                        config_name = "default"
+                    self.save_configuration(config_name)
+                    continue
+                    
+                if query.lower() in ['load-config', 'lc']:
+                    # Ask for config name, defaulting to "default"
+                    config_name = await self.get_user_input("Config name to load (or press Enter for default)")
+                    if not config_name or config_name.strip() == "":
+                        config_name = "default"
+                    self.load_configuration(config_name)
+                    # Update display after loading
+                    self.display_current_model()
+                    self.display_available_tools()
+                    continue
+                    
+                if query.lower() in ['reset-config', 'rc']:
+                    self.reset_configuration()
+                    # Update display after resetting
+                    self.display_current_model()
+                    self.display_available_tools()
+                    continue
 
                 # Check if query is too short and not a special command
                 if len(query.strip()) < 5:
@@ -847,7 +880,10 @@ class MCPClient:
             "• Type [bold]help[/bold] or [bold]h[/bold] to show this help message\n"
             "• Type [bold]model[/bold] or [bold]m[/bold] to select a model\n"
             "• Type [bold]quit[/bold] or [bold]q[/bold] to exit\n"
-            "• Type [bold]tools[/bold] or [bold]t[/bold] to configure tools", 
+            "• Type [bold]tools[/bold] or [bold]t[/bold] to configure tools\n"
+            "• Type [bold]save-config[/bold] or [bold]sc[/bold] to save the current configuration\n"
+            "• Type [bold]load-config[/bold] or [bold]lc[/bold] to load a configuration\n"
+            "• Type [bold]reset-config[/bold] or [bold]rc[/bold] to reset configuration to defaults", 
             title="Help", border_style="yellow", expand=False))
 
     def toggle_context_retention(self):
@@ -885,6 +921,151 @@ class MCPClient:
         # Show context stats once after toggling
         if self.show_context_info:
             self.display_context_stats()
+            
+    def save_configuration(self, config_name=None):
+        """Save current tool configuration and model settings to a file
+        
+        Args:
+            config_name: Optional name for the config (defaults to 'default')
+        """
+        # Create config directory if it doesn't exist
+        os.makedirs(DEFAULT_CONFIG_DIR, exist_ok=True)
+        
+        # Default to 'default' if no config name provided
+        if not config_name:
+            config_name = "default"
+        
+        # Sanitize filename
+        config_name = ''.join(c for c in config_name if c.isalnum() or c in ['-', '_']).lower()
+        if not config_name:
+            config_name = "default"
+            
+        # Create config file path
+        if config_name == "default":
+            config_path = os.path.join(DEFAULT_CONFIG_DIR, DEFAULT_CONFIG_FILE)
+        else:
+            config_path = os.path.join(DEFAULT_CONFIG_DIR, f"{config_name}.json")
+        
+        # Build config data
+        config_data = {
+            "model": self.model,
+            "enabledTools": self.enabled_tools,
+            "contextSettings": {
+                "retainContext": self.retain_context,
+                "showContextInfo": self.show_context_info
+            }
+        }
+        
+        # Write to file
+        try:
+            with open(config_path, 'w') as f:
+                json.dump(config_data, f, indent=2)
+            
+            self.console.print(Panel(
+                f"[green]Configuration saved successfully to:[/green]\n"
+                f"[blue]{config_path}[/blue]",
+                title="Config Saved", border_style="green", expand=False
+            ))
+            return True
+        except Exception as e:
+            self.console.print(Panel(
+                f"[red]Error saving configuration:[/red]\n"
+                f"{str(e)}",
+                title="Error", border_style="red", expand=False
+            ))
+            return False
+    
+    def load_configuration(self, config_name=None):
+        """Load tool configuration and model settings from a file
+        
+        Args:
+            config_name: Optional name of the config to load (defaults to 'default')
+            
+        Returns:
+            bool: True if loaded successfully, False otherwise
+        """
+        # Default to 'default' if no config name provided
+        if not config_name:
+            config_name = "default"
+            
+        # Sanitize filename
+        config_name = ''.join(c for c in config_name if c.isalnum() or c in ['-', '_']).lower()
+        if not config_name:
+            config_name = "default"
+            
+        # Create config file path
+        if config_name == "default":
+            config_path = os.path.join(DEFAULT_CONFIG_DIR, DEFAULT_CONFIG_FILE)
+        else:
+            config_path = os.path.join(DEFAULT_CONFIG_DIR, f"{config_name}.json")
+            
+        # Check if config file exists
+        if not os.path.exists(config_path):
+            self.console.print(Panel(
+                f"[yellow]Configuration file not found:[/yellow]\n"
+                f"[blue]{config_path}[/blue]",
+                title="Config Not Found", border_style="yellow", expand=False
+            ))
+            return False
+            
+        # Read config file
+        try:
+            with open(config_path, 'r') as f:
+                config_data = json.load(f)
+                
+            # Load model if specified
+            if "model" in config_data:
+                self.model = config_data["model"]
+                
+            # Load enabled tools if specified
+            if "enabledTools" in config_data:
+                loaded_tools = config_data["enabledTools"]
+                
+                # Only apply tools that actually exist in our available tools
+                available_tool_names = {tool.name for tool in self.available_tools}
+                for tool_name, enabled in loaded_tools.items():
+                    if tool_name in available_tool_names:
+                        self.enabled_tools[tool_name] = enabled
+                        
+            # Load context settings if specified
+            if "contextSettings" in config_data:
+                if "retainContext" in config_data["contextSettings"]:
+                    self.retain_context = config_data["contextSettings"]["retainContext"]
+                if "showContextInfo" in config_data["contextSettings"]:
+                    self.show_context_info = config_data["contextSettings"]["showContextInfo"]
+                    
+            self.console.print(Panel(
+                f"[green]Configuration loaded successfully from:[/green]\n"
+                f"[blue]{config_path}[/blue]",
+                title="Config Loaded", border_style="green", expand=False
+            ))
+            return True
+        except Exception as e:
+            self.console.print(Panel(
+                f"[red]Error loading configuration:[/red]\n"
+                f"{str(e)}",
+                title="Error", border_style="red", expand=False
+            ))
+            return False
+            
+    def reset_configuration(self):
+        """Reset tool configuration to default (all tools enabled)"""
+        # Enable all tools
+        for tool in self.available_tools:
+            self.enabled_tools[tool.name] = True
+            
+        # Reset context settings
+        self.retain_context = True
+        self.show_context_info = False
+        
+        self.console.print(Panel(
+            "[green]Configuration reset to defaults![/green]\n"
+            "• All tools enabled\n"
+            "• Context retention enabled\n"
+            "• Context info display disabled",
+            title="Config Reset", border_style="green", expand=False
+        ))
+        return True
 
     async def cleanup(self):
         """Clean up resources"""
