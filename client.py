@@ -787,9 +787,10 @@ async def main():
     server_group.add_argument("--mcp-server", help="Path to a server script (.py or .js)", action="append")
     server_group.add_argument("--servers-json", help="Path to a JSON file with server configurations")
     server_group.add_argument("--auto-discovery", action="store_true", default=False,
-                            help=f"Auto-discover servers from Claude's config at {DEFAULT_CLAUDE_CONFIG}")    
+                            help=f"Auto-discover servers from Claude's config at {DEFAULT_CLAUDE_CONFIG} - Default option")
     # Model options
-    parser.add_argument("--model", default="qwen2.5:latest", help="Ollama model to use for API calls")
+    model_group = parser.add_argument_group("Model Options")
+    model_group.add_argument("--model", default="qwen2.5:latest", help="Ollama model to use. For example: 'qwen2.5:latest'")
     
      # Add a function to modify args after parsing
     def parse_args_with_defaults():
