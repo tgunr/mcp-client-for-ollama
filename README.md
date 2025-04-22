@@ -16,6 +16,7 @@ This client was created by adapting the Python example for MCP client from the [
 - Chat history tracking
 - Support for both Python and JavaScript MCP servers
 - Auto-discovery of servers from Claude's configuration
+- List and switch Ollama models during a session
 
 ## Requirements
 
@@ -79,6 +80,7 @@ During the chat session, the following commands are available:
 |---------|----------|-------------|
 | `help` | `h` | Display help and available commands |
 | `tools` | `t` | Open the tool selection interface |
+| `model` | `m` | List and select a different Ollama model |
 | `quit` | `q` | Exit the client |
 
 In the tool selection interface:
@@ -88,6 +90,10 @@ In the tool selection interface:
 - `d` or `desc` - Show/hide tool descriptions
 - `s` or `save` - Save changes and return to chat
 - `q` or `quit` - Cancel changes and return to chat
+
+In the model selection interface:
+- Enter the number of the model you want to use
+- `q` or `quit` - Cancel and return to chat
 
 ### Server Configuration Format
 
