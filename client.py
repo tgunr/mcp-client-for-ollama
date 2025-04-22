@@ -28,7 +28,7 @@ load_dotenv()  # load environment variables from .env
 
 # Default Claude config file location
 DEFAULT_CLAUDE_CONFIG = os.path.expanduser("~/Library/Application Support/Claude/claude_desktop_config.json")
-# Default config directory and filename for MCP client
+# Default config directory and filename for MCP client for Ollama
 DEFAULT_CONFIG_DIR = os.path.expanduser("~/.config/mcp-client-for-ollama")
 if not os.path.exists(DEFAULT_CONFIG_DIR):
     os.makedirs(DEFAULT_CONFIG_DIR)
@@ -126,14 +126,13 @@ class MCPClient:
         self.clear_console()
         
         # Display model selection interface
-        self.console.print(Panel("[bold]Model Selection[/bold]", border_style="blue", expand=False))
+        self.console.print(Panel(Text.from_markup("[bold]Select a Model[/bold]", justify="center"), expand=True, border_style="green"))        
         
         # Sort models by name for easier reading
         models.sort(key=lambda x: x.get("name", ""))
-        
-        # Show current model with an indicator
-        self.console.print(f"Current model: [bold green]{self.model}[/bold green]\n")
-        
+                
+        # Display available models in a numbered list
+        self.console.print(Panel("[bold]Available Models[/bold]", border_style="blue", expand=False))        
         # Display available models
         for i, model in enumerate(models):
             model_name = model.get("name", "Unknown")
@@ -161,7 +160,9 @@ class MCPClient:
                         break
             
             self.console.print(f"{i+1}. {status} [bold blue]{model_name}[/bold blue] [dim]({size_str}, {modified_at})[/dim]")
-
+        # Show current model with an indicator
+        self.console.print(f"\nCurrent model: [bold green]{self.model}[/bold green]\n")
+        # Show the command panel
         self.console.print(Panel("[bold yellow]Commands[/bold yellow]", expand=False))
         self.console.print("• Enter [bold magenta]number[/bold magenta] to select a model")
         self.console.print("• [bold]s[/bold] or [bold]save[/bold] - Save model selection and return")
@@ -174,10 +175,10 @@ class MCPClient:
             # Keep the current model selection
             self.clear_console()
             self.console.print("[green]Model selection saved![/green]")
-            # Display the current model
-            self.display_current_model()
             # Display available tools
             self.display_available_tools()
+            # Display the current model
+            self.display_current_model()
             # Display chat history before returning to chat interface
             self._display_chat_history()
             return
@@ -187,10 +188,10 @@ class MCPClient:
             self.model = original_model
             self.clear_console()
             self.console.print("[yellow]Model selection cancelled.[/yellow]")
-            # Display the current model
-            self.display_current_model()
             # Display available tools
             self.display_available_tools()
+            # Display the current model
+            self.display_current_model()
             # Display chat history before returning to chat interface
             self._display_chat_history()
             return
@@ -437,6 +438,8 @@ class MCPClient:
         # Save the original tool states in case the user cancels
         original_states = self.enabled_tools.copy()
         show_descriptions = False  # Default: don't show descriptions
+        result_message = None      # Store the result message to display in a panel
+        result_style = "green"     # Style for the result message panel
         
         # Group tools by server
         servers = {}
@@ -454,10 +457,10 @@ class MCPClient:
         
         while True:
             # Show the tool selection interface
-            self.console.print(Panel("[bold]Tool Selection Interface[/bold]", border_style="green", expand=False))
+            self.console.print(Panel(Text.from_markup("[bold]Tool Selection[/bold]", justify="center"), expand=True, border_style="green"))
             
             # Display the server groups and their tools
-            self.console.print(Panel("[bold]Available Tools[/bold]", border_style="blue", expand=False))
+            self.console.print(Panel("[bold]Available Servers and Tools[/bold]", border_style="blue", expand=False))
             
             tool_index = 1  # Global tool index across all servers
             
@@ -477,26 +480,66 @@ class MCPClient:
                 else:
                     server_status = "[yellow]~[/yellow]"  # Some enabled
                 
-                self.console.print(f"S{server_idx+1}. {server_status} [bold blue]{server_name}[/bold blue] ({enabled_count}/{total_count} tools)")
+                # Create panel title with server number, status and name
+                panel_title = f"[bold orange3]S{server_idx+1}. {server_status} {server_name}[/bold orange3]"
+                # Create panel subtitle with tools count
+                panel_subtitle = f"[green]{enabled_count}/{total_count} tools enabled[/green]"
                 
-                # Display individual tools for this server
-                for tool in server_tools:
-                    status = "[green]✓[/green]" if self.enabled_tools[tool.name] else "[red]✗[/red]"
-                    self.console.print(f"   {tool_index}. {status} {tool.name}")
+                # Different display mode based on whether descriptions are shown
+                if show_descriptions:
+                    # Simple list format for when descriptions are shown
+                    tool_list = []
+                    for tool in server_tools:
+                        status = "[green]✓[/green]" if self.enabled_tools[tool.name] else "[red]✗[/red]"
+                        tool_text = f"[magenta]{tool_index}[/magenta]. {status} {tool.name}"
+                        
+                        # Add description if available
+                        if hasattr(tool, 'description') and tool.description:
+                            # Indent description for better readability
+                            description = f"\n      {tool.description}"
+                            tool_text += description
+                            
+                        tool_list.append(tool_text)
+                        
+                        # Store the mapping from display index to tool
+                        index_to_tool[tool_index] = tool
+                        tool_index += 1
                     
-                    # Store the mapping from display index to tool
-                    index_to_tool[tool_index] = tool
+                    # Join tool texts with newlines
+                    panel_content = "\n".join(tool_list)
+                    self.console.print(Panel(panel_content, padding=(1,1), title=panel_title, 
+                                          subtitle=panel_subtitle, border_style="blue", 
+                                          title_align="left", subtitle_align="right"))
+                else:
+                    # Original columns format for when descriptions are hidden
+                    # Display individual tools for this server in columns
+                    server_tool_texts = []
+                    for tool in server_tools:
+                        status = "[green]✓[/green]" if self.enabled_tools[tool.name] else "[red]✗[/red]"
+                        tool_text = f"[magenta]{tool_index}[/magenta]. {status} {tool.name}"
+                        
+                        # Store the mapping from display index to tool
+                        index_to_tool[tool_index] = tool
+                        tool_index += 1
+                        
+                        server_tool_texts.append(tool_text)
                     
-                    if show_descriptions and hasattr(tool, 'description') and tool.description:
-                        description = Text.from_markup(f"{tool.description}")
-                        self.console.print(f"      {description}")
-                    
-                    tool_index += 1
+                    # Display tools in columns inside a panel if there are any
+                    if server_tool_texts:
+                        columns = Columns(server_tool_texts, padding=(0, 2), equal=False, expand=False)
+                        self.console.print(Panel(columns, padding=(1,1), title=panel_title, subtitle=panel_subtitle, border_style="blue", title_align="left", subtitle_align="right"))
+                
+                self.console.print()  # Add space between servers
             
+            # Display the result message if there is one
+            if result_message:
+                self.console.print(Panel(result_message, border_style=result_style, expand=False))
+                result_message = None  # Clear the message after displaying it
+                                
             # Display the command panel
             self.console.print(Panel("[bold yellow]Commands[/bold yellow]", expand=False))
             self.console.print(f"• Enter [bold magenta]numbers[/bold magenta][bold yellow] separated by commas or ranges[/bold yellow] to toggle tools (e.g. [bold]1,3,5-8[/bold])")
-            self.console.print(f"• Enter [bold magenta]S + number[/bold magenta] to toggle all tools in a server (e.g. [bold]S1[/bold] or [bold]s2[/bold])")
+            self.console.print(f"• Enter [bold orange3]S + number[/bold orange3] to toggle all tools in a server (e.g. [bold]S1[/bold] or [bold]s2[/bold])")
             self.console.print("• [bold]a[/bold] or [bold]all[/bold] - Enable all tools")
             self.console.print("• [bold]n[/bold] or [bold]none[/bold] - Disable all tools")
             self.console.print(f"• [bold]d[/bold] or [bold]desc[/bold] - {'Hide' if show_descriptions else 'Show'} descriptions")
@@ -508,44 +551,41 @@ class MCPClient:
             
             if selection in ['s', 'save']:
                 self.clear_console()
-                self.console.print("[green]Tool changes saved![/green]")
-                
-                # Display chat history before returning to chat interface
+                # Instead of printing directly, display the chat history and tools
                 self._display_chat_history()
+                self.display_available_tools()      
                 self.display_current_model()
-                self.display_available_tools()            
                 return
             
             if selection in ['q', 'quit']:
                 # Restore original tool states
                 self.enabled_tools = original_states.copy()
                 self.clear_console()
-                self.console.print("[yellow]Tool changes cancelled.[/yellow]")
-                
-                # Display chat history before returning to chat interface
+                # Instead of printing directly, display the chat history and tools
                 self._display_chat_history()
-                self.display_current_model()
                 self.display_available_tools()
+                self.display_current_model()
                 return
             
             if selection in ['a', 'all']:
                 for tool in self.available_tools:
                     self.enabled_tools[tool.name] = True
                 self.clear_console()
-                self.console.print("[green]All tools enabled![/green]")
+                result_message = "[green]All tools enabled![/green]"                
                 continue
             
             if selection in ['n', 'none']:
                 for tool in self.available_tools:
                     self.enabled_tools[tool.name] = False
                 self.clear_console()
-                self.console.print("[orange3]All tools disabled![/orange3]")
+                result_message = "[yellow]All tools disabled![/yellow]"                
                 continue
                 
             if selection in ['d', 'desc']:
                 show_descriptions = not show_descriptions
                 self.clear_console()
-                self.console.print(f"[cyan]Descriptions {'shown' if show_descriptions else 'hidden'}![/cyan]")
+                status = "shown" if show_descriptions else "hidden"
+                result_message = f"[blue]Tool descriptions {status}![/blue]"                
                 continue
             
             # Check for server toggle (S1, S2, etc.)
@@ -564,10 +604,11 @@ class MCPClient:
                     
                     self.clear_console()
                     status = "enabled" if new_state else "disabled"
-                    self.console.print(f"[green]All tools in server '{server_name}' {status}![/green]")
+                    result_message = f"[{'green' if new_state else 'yellow'}]All tools in server '{server_name}' {status}![/{'green' if new_state else 'yellow'}]"                    
                 else:
                     self.clear_console()
-                    self.console.print(f"[red]Invalid server number: S{server_idx+1}. Must be between S1 and S{len(sorted_servers)}[/red]")
+                    result_message = f"[red]Invalid server number: S{server_idx+1}. Must be between S1 and S{len(sorted_servers)}[/red]"
+                    result_style = "red"
                 continue
             
             # Process individual tool selections and ranges
@@ -594,24 +635,31 @@ class MCPClient:
                             self.console.print(f"[red]Invalid selection: {part}[/red]")
                 
                 # Process the selections using our accurate mapping
+                toggled_tools_count = 0
+                invalid_indices = []
+                
                 for idx in selections:
                     if idx in index_to_tool:
                         tool = index_to_tool[idx]
                         self.enabled_tools[tool.name] = not self.enabled_tools[tool.name]
                         valid_toggle = True
+                        toggled_tools_count += 1
                     else:
-                        self.console.print(f"[red]Invalid number: {idx}. Must be between 1 and {len(index_to_tool)}[/red]")
+                        invalid_indices.append(idx)
                 
+                self.clear_console()
                 if valid_toggle:
-                    self.clear_console()
-                    self.console.print("[green]Tools toggled successfully![/green]")
+                    result_message = f"[green]Successfully toggled {toggled_tools_count} tool{'s' if toggled_tools_count != 1 else ''}![/green]"
+                    if invalid_indices:
+                        result_message += f"\n[yellow]Warning: Invalid indices ignored: {', '.join(map(str, invalid_indices))}[/yellow]"
                 else:
-                    self.clear_console()
-                    self.console.print("[yellow]No valid tool numbers provided.[/yellow]")
+                    result_message = "[yellow]No valid tool numbers provided.[/yellow]"
+                    result_style = "yellow"
             
             except ValueError:
                 self.clear_console()
-                self.console.print("[red]Invalid input. Please enter numbers, ranges, or server designators.[/red]")
+                result_message = "[red]Invalid input. Please enter numbers, ranges, or server designators.[/red]"
+                result_style = "red"
 
     def _display_chat_history(self):
         """Display chat history when returning to the main chat interface"""
@@ -764,9 +812,9 @@ class MCPClient:
     async def chat_loop(self):
         """Run an interactive chat loop"""
         self.clear_console()
-        self.console.print(Panel.fit("[bold green]MCP Client Started![/bold green]"))
-        self.display_current_model()        
+        self.console.print(Panel(Text.from_markup("[bold green]Welcome to the MCP Client for Ollama[/bold green]", justify="center"), expand=True, border_style="green"))
         self.display_available_tools()
+        self.display_current_model()        
         self.print_help()
 
         while True:
@@ -804,8 +852,8 @@ class MCPClient:
                     
                 if query.lower() in ['cls', 'clear-screen']:
                     self.clear_console()
-                    self.display_current_model()
                     self.display_available_tools()
+                    self.display_current_model()
                     continue
                     
                 if query.lower() in ['save-config', 'sc']:
@@ -823,15 +871,15 @@ class MCPClient:
                         config_name = "default"
                     self.load_configuration(config_name)
                     # Update display after loading
-                    self.display_current_model()
                     self.display_available_tools()
+                    self.display_current_model()
                     continue
                     
                 if query.lower() in ['reset-config', 'rc']:
                     self.reset_configuration()
                     # Update display after resetting
-                    self.display_current_model()
                     self.display_available_tools()
+                    self.display_current_model()
                     continue
 
                 # Check if query is too short and not a special command
@@ -1080,7 +1128,7 @@ class MCPClient:
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="MCP Client")
+    parser = argparse.ArgumentParser(description="MCP Client for Ollama")
     
     # Server configuration options
     server_group = parser.add_argument_group("Server Options")
