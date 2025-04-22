@@ -32,7 +32,7 @@ DEFAULT_CLAUDE_CONFIG = os.path.expanduser("~/Library/Application Support/Claude
 DEFAULT_CONFIG_DIR = os.path.expanduser("~/.config/mcp-client-for-ollama")
 if not os.path.exists(DEFAULT_CONFIG_DIR):
     os.makedirs(DEFAULT_CONFIG_DIR)
-    
+
 DEFAULT_CONFIG_FILE = "config.json"
 
 class MCPClient:
@@ -872,18 +872,25 @@ class MCPClient:
     def print_help(self):
         """Print available commands"""
         self.console.print(Panel(
-            "[yellow]Available Commands:[/yellow]\n"
-            "• Type [bold]clear[/bold] or [bold]cc[/bold] to clear conversation context\n"
-            "• Type [bold]cls[/bold] or [bold]clear-screen[/bold] to clear the terminal screen\n"
-            "• Type [bold]context[/bold] or [bold]c[/bold] to toggle context retention\n"
-            "• Type [bold]contextinfo[/bold] or [bold]ci[/bold] to toggle context info display\n"
-            "• Type [bold]help[/bold] or [bold]h[/bold] to show this help message\n"
+            "[yellow]Available Commands:[/yellow]\n\n"
+            "[bold cyan]Model and Tools:[/bold cyan]\n"
             "• Type [bold]model[/bold] or [bold]m[/bold] to select a model\n"
-            "• Type [bold]quit[/bold] or [bold]q[/bold] to exit\n"
-            "• Type [bold]tools[/bold] or [bold]t[/bold] to configure tools\n"
+            "• Type [bold]tools[/bold] or [bold]t[/bold] to configure tools\n\n"
+            
+            "[bold cyan]Context Management:[/bold cyan]\n"
+            "• Type [bold]context[/bold] or [bold]c[/bold] to toggle context retention\n"
+            "• Type [bold]clear[/bold] or [bold]cc[/bold] to clear conversation context\n"
+            "• Type [bold]contextinfo[/bold] or [bold]ci[/bold] to toggle context info display\n\n"
+            
+            "[bold cyan]Configuration:[/bold cyan]\n"
             "• Type [bold]save-config[/bold] or [bold]sc[/bold] to save the current configuration\n"
             "• Type [bold]load-config[/bold] or [bold]lc[/bold] to load a configuration\n"
-            "• Type [bold]reset-config[/bold] or [bold]rc[/bold] to reset configuration to defaults", 
+            "• Type [bold]reset-config[/bold] or [bold]rc[/bold] to reset configuration to defaults\n\n"
+            
+            "[bold cyan]Basic Commands:[/bold cyan]\n"
+            "• Type [bold]help[/bold] or [bold]h[/bold] to show this help message\n"
+            "• Type [bold]clear-screen[/bold] or [bold]cls[/bold] to clear the terminal screen\n"
+            "• Type [bold]quit[/bold] or [bold]q[/bold] to exit", 
             title="Help", border_style="yellow", expand=False))
 
     def toggle_context_retention(self):
