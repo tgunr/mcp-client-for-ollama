@@ -7,8 +7,6 @@
 
 A powerful Python client for interacting with Model Context Protocol (MCP) servers using Ollama models, enabling tool use for local LLMs.
 
-
-
 ## Overview
 
 This project provides a robust Python-based client that connects to one or more Model Context Protocol (MCP) servers and uses Ollama to process queries with tool use capabilities. The client establishes connections to MCP servers, sends queries to Ollama models, and handles the tool calls the model makes.
