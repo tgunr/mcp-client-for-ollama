@@ -29,7 +29,7 @@ This implementation was adapted from the [Model Context Protocol quickstart guid
 
 ## Requirements
 
-- **Python 3.8+** (Python 3.10 recommended)
+- **Python 3.10+** ([Installation guide](https://www.python.org/downloads/))
 - **Ollama** running locally ([Installation guide](https://ollama.com/download))
 - **UV package manager** ([Installation guide](https://github.com/astral-sh/uv))
 
@@ -44,7 +44,7 @@ This implementation was adapted from the [Model Context Protocol quickstart guid
 2. Create and activate a virtual environment with UV:
    ```bash
    uv venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   source .venv/bin/activate
    ```
 
 3. Install the package:
