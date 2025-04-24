@@ -29,7 +29,7 @@ This implementation was adapted from the [Model Context Protocol quickstart guid
 - 💾 **Configuration Persistence**: Save and load tool preferences between sessions
 - 📊 **Usage Analytics**: Track token consumption and conversation history metrics
 - 🔌 **Plug-and-Play**: Works immediately with standard MCP-compliant tool servers
-- 🔄 **Update Notifications**: Automatically detects when a new version is available
+- 🔔 **Update Notifications**: Automatically detects when a new version is available
 
 ## Requirements
 
