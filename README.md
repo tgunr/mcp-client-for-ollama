@@ -199,6 +199,11 @@ For a complete list of Ollama models with tool use capabilities, visit the [offi
    - Sends the tool result back to Ollama
    - Shows the final response
 
+## Where Can I Find More MCP Servers?
+
+You can explore a collection of MCP servers in the official [MCP Servers repository](https://github.com/modelcontextprotocol/servers).
+
+This repository contains reference implementations for the Model Context Protocol, community-built servers, and additional resources to enhance your LLM tool capabilities.
 
 ## License
 
