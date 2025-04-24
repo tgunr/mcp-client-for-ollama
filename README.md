@@ -29,6 +29,7 @@ This implementation was adapted from the [Model Context Protocol quickstart guid
 - 💾 **Configuration Persistence**: Save and load tool preferences between sessions
 - 📊 **Usage Analytics**: Track token consumption and conversation history metrics
 - 🔌 **Plug-and-Play**: Works immediately with standard MCP-compliant tool servers
+- 🔄 **Update Notifications**: Automatically detects when a new version is available
 
 ## Requirements
 
@@ -38,7 +39,7 @@ This implementation was adapted from the [Model Context Protocol quickstart guid
 
 ## Quick Start
 
-**Option 1:** Install with pip
+**Option 1:** Install with pip and run
 ```bash
 pip install ollmcp
 ollmcp
@@ -49,13 +50,13 @@ ollmcp
 uvx ollmcp
 ```
 
-**Option 3:** Run from repository
+**Option 3:** Install from source and run using virtual environment
 ```bash
 git clone https://github.com/jonigl/mcp-client-for-ollama.git
 cd mcp-client-for-ollama
 uv venv && source .venv/bin/activate
 uv pip install .
-ollmcp
+uv run mcp_client_for_ollama/client.py
 ```
 
 ## Usage
@@ -81,18 +82,18 @@ If you don't provide any options, the client will use auto-discovery mode to fin
 
 Connect to a single server:
 ```bash
-uv run client.py --mcp-server /path/to/weather.py --model llama3.2:3b
+ollmcp --mcp-server /path/to/weather.py --model llama3.2:3b
 ```
 
 Connect to multiple servers:
 ```bash
-uv run client.py --mcp-server /path/to/weather.py --mcp-server /path/to/filesystem.js --model qwen2.5:latest
+ollmcp --mcp-server /path/to/weather.py --mcp-server /path/to/filesystem.js --model qwen2.5:latest
 
 ```
 
 Use a JSON configuration file:
 ```bash
-uv run client.py --servers-json /path/to/servers.json --model llama3.2:1b
+ollmcp --servers-json /path/to/servers.json --model llama3.2:1b
 ```
 
 ## Interactive Commands
@@ -108,7 +109,7 @@ During chat, use these commands:
 | `model` | `m` | List and select a different Ollama model |
 | `context` | `c` | Toggle context retention (on/off) |
 | `clear` | `cc` | Clear conversation history and context |
-| `contextinfo` | `ci` | Toggle displaying context statistics after each message |
+| `context-info` | `ci` | Display context statistics |
 | `cls` | `clear-screen` | Clear the terminal screen |
 | `save-config` | `sc` | Save current tool and model configuration to a file |
 | `load-config` | `lc` | Load tool and model configuration from a file |

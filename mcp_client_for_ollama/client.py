@@ -20,10 +20,11 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.text import Text
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import aiohttp
 from datetime import datetime
 import dateutil.parser
+import re
 
 # Default Claude config file location
 DEFAULT_CLAUDE_CONFIG = os.path.expanduser("~/Library/Application Support/Claude/claude_desktop_config.json")
@@ -50,8 +51,7 @@ class MCPClient:
             'prompt': 'ansibrightyellow bold',
         })
         # Context retention settings
-        self.retain_context = True  # By default, retain conversation context
-        self.show_context_info = False  # By default, don't show context info after each message
+        self.retain_context = True  # By default, retain conversation context        
         self.approx_token_count = 0  # Approximate token count for the conversation
         self.token_count_per_char = 0.25  # Rough approximation of tokens per character
         
@@ -840,14 +840,31 @@ class MCPClient:
             return "quit"
         except EOFError:
             return "quit"
+        
+    async def display_check_for_updates(self):
+        # Check for updates
+        try:
+            update_available, current_version, latest_version = await check_for_updates()
+            if update_available:
+                self.console.print(Panel(
+                    f"[bold yellow]New version available![/bold yellow]\n\n"
+                    f"Current version: [cyan]{current_version}[/cyan]\n"
+                    f"Latest version: [green]{latest_version}[/green]\n\n"
+                    f"Upgrade with: [bold white]pip install --upgrade mcp-client-for-ollama[/bold white]",
+                    title="Update Available", border_style="yellow", expand=False
+                ))
+        except Exception as e:
+            # Silently fail - version check should not block program usage
+            pass
 
     async def chat_loop(self):
         """Run an interactive chat loop"""
-        self.clear_console()
+        self.clear_console()        
         self.console.print(Panel(Text.from_markup("[bold green]Welcome to the MCP Client for Ollama[/bold green]", justify="center"), expand=True, border_style="green"))
         self.display_available_tools()
-        self.display_current_model()        
+        self.display_current_model()
         self.print_help()
+        await self.display_check_for_updates()
 
         while True:
             try:
@@ -878,8 +895,8 @@ class MCPClient:
                     self.clear_context()
                     continue
 
-                if query.lower() in ['contextinfo', 'ci']:
-                    self.toggle_context_display()
+                if query.lower() in ['context-info', 'ci']:
+                    self.display_context_stats()
                     continue
                     
                 if query.lower() in ['cls', 'clear-screen']:
@@ -922,10 +939,7 @@ class MCPClient:
                 try:
                     response = await self.process_query(query)
                     if response:
-                        self.console.print(Markdown(response))
-                        # Show context info after response if enabled
-                        if self.show_context_info:
-                            self.display_context_stats()
+                        self.console.print(Markdown(response))                                                
                     else:
                         self.console.print("[red]No response received.[/red]")
                 except ollama.ResponseError as e:
@@ -961,7 +975,7 @@ class MCPClient:
             "[bold cyan]Context Management:[/bold cyan]\n"
             "• Type [bold]context[/bold] or [bold]c[/bold] to toggle context retention\n"
             "• Type [bold]clear[/bold] or [bold]cc[/bold] to clear conversation context\n"
-            "• Type [bold]contextinfo[/bold] or [bold]ci[/bold] to toggle context info display\n\n"
+            "• Type [bold]context-info[/bold] or [bold]ci[/bold] to display context info\n\n"
             
             "[bold cyan]Configuration:[/bold cyan]\n"
             "• Type [bold]save-config[/bold] or [bold]sc[/bold] to save the current configuration\n"
@@ -1001,15 +1015,6 @@ class MCPClient:
             title="Context Window", border_style="cyan", expand=False
         ))
 
-    def toggle_context_display(self):
-        """Toggle whether to show context stats after each message"""
-        self.show_context_info = not self.show_context_info
-        status = "enabled" if self.show_context_info else "disabled"
-        self.console.print(f"[green]Context info display {status}![/green]")
-        # Show context stats once after toggling
-        if self.show_context_info:
-            self.display_context_stats()
-            
     def save_configuration(self, config_name=None):
         """Save current tool configuration and model settings to a file
         
@@ -1039,8 +1044,7 @@ class MCPClient:
             "model": self.model,
             "enabledTools": self.enabled_tools,
             "contextSettings": {
-                "retainContext": self.retain_context,
-                "showContextInfo": self.show_context_info
+                "retainContext": self.retain_context
             }
         }
         
@@ -1118,9 +1122,7 @@ class MCPClient:
             # Load context settings if specified
             if "contextSettings" in config_data:
                 if "retainContext" in config_data["contextSettings"]:
-                    self.retain_context = config_data["contextSettings"]["retainContext"]
-                if "showContextInfo" in config_data["contextSettings"]:
-                    self.show_context_info = config_data["contextSettings"]["showContextInfo"]
+                    self.retain_context = config_data["contextSettings"]["retainContext"]                
                     
             self.console.print(Panel(
                 f"[green]Configuration loaded successfully from:[/green]\n"
@@ -1144,7 +1146,6 @@ class MCPClient:
             
         # Reset context settings
         self.retain_context = True
-        self.show_context_info = False
         
         self.console.print(Panel(
             "[green]Configuration reset to defaults![/green]\n"
@@ -1158,6 +1159,40 @@ class MCPClient:
     async def cleanup(self):
         """Clean up resources"""
         await self.exit_stack.aclose()
+
+
+async def check_for_updates():
+    """Check if a newer version of the package is available on PyPI.
+    
+    Returns:
+        Tuple[bool, str, str]: (update_available, current_version, latest_version)
+    """
+    from mcp_client_for_ollama import __version__ as current_version
+    
+    try:
+        # Request package info from PyPI
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://pypi.org/pypi/mcp-client-for-ollama/json") as response:
+                if response.status != 200:
+                    return False, current_version, current_version
+                
+                data = await response.json()
+                latest_version = data.get("info", {}).get("version", current_version)
+                
+                # Compare versions (treating them as tuples of integers)
+                def parse_version(version_str):
+                    # Extract numbers from version string (handles formats like 0.1.11)
+                    return tuple(map(int, re.findall(r'\d+', version_str)))
+                
+                current_parsed = parse_version(current_version)
+                latest_parsed = parse_version(latest_version)
+                
+                update_available = latest_parsed > current_parsed
+                return update_available, current_version, latest_version
+    
+    except Exception:
+        # Return no update available on error
+        return False, current_version, current_version
 
 
 async def main():
@@ -1223,14 +1258,9 @@ async def main():
             if not os.path.exists(server_path):
                 console.print(f"[bold red]Error: Server script not found: {server_path}[/bold red]")
                 return
-
     try:
         await client.connect_to_servers(args.mcp_server, config_path)
-        # Only proceed to chat loop if we have at least one tool available
-        if client.available_tools:
-            await client.chat_loop()
-        else:
-            console.print("[bold red]No tools available. Exiting.[/bold red]")
+        await client.chat_loop()
     finally:
         await client.cleanup()
 
