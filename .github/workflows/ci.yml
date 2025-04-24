@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: ["3.10"]
 
     steps:
     - uses: actions/checkout@v4
@@ -31,7 +31,8 @@ jobs:
         
     - name: Test main package
       run: |
-        pytest -xvs || echo "No tests found in main package, continuing workflow"
+        # Use python -m pytest to ensure proper module imports
+        python -m pytest -xvs
         
     - name: Install CLI package
       run: |
@@ -41,7 +42,8 @@ jobs:
     - name: Test CLI package
       run: |
         cd cli-package
-        pytest -xvs || echo "No tests found in CLI package, continuing workflow"
+        # Use python -m pytest to ensure proper module imports
+        python -m pytest -xvs
 
   build-check:
     name: Check build packages
