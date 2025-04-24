@@ -2,6 +2,8 @@
 
 A command-line interface for connecting to MCP servers using Ollama.
 
+![alt text](../misc/ollmcp-welcome.jpg)
+
 ## Installation
 
 ```

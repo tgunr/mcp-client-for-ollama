@@ -1,11 +1,15 @@
 # MCP Client for Ollama
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
-![PyPI - Python Version](https://img.shields.io/pypi/v/ollmcp?label=ollmcp-pypi)
-![PyPI - Python Version](https://img.shields.io/pypi/v/mcp-client-for-ollama?label=mcp-client-for-ollama-pypi)
+[![PyPI - Python Version](https://img.shields.io/pypi/v/ollmcp?label=ollmcp-pypi)](https://pypi.org/project/ollmcp/)
+[![PyPI - Python Version](https://img.shields.io/pypi/v/mcp-client-for-ollama?label=mcp-client-for-ollama-pypi)](https://pypi.org/project/mcp-client-for-ollama/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build, Publish and Release](https://github.com/jonigl/mcp-client-for-ollama/actions/workflows/publish.yml/badge.svg)](https://github.com/jonigl/mcp-client-for-ollama/actions/workflows/publish.yml)
+[![CI](https://github.com/jonigl/mcp-client-for-ollama/actions/workflows/ci.yml/badge.svg)](https://github.com/jonigl/mcp-client-for-ollama/actions/workflows/ci.yml)
 
 A simple yet powerful Python client for interacting with Model Context Protocol (MCP) servers using Ollama, allowing local LLMs to use tools.
+
+![ollmpc usage demo gif](misc/ollmcp-demo.gif)
 
 ## Overview
 
@@ -95,6 +99,8 @@ uv run client.py --servers-json /path/to/servers.json --model llama3.2:1b
 
 During chat, use these commands:
 
+![ollmcp main interface](misc/ollmcp-welcome.jpg)
+
 | Command | Shortcut | Description |
 |---------|----------|-------------|
 | `help` | `h` | Display help and available commands |
@@ -113,6 +119,8 @@ During chat, use these commands:
 
 The tool and server selection interface allows you to enable or disable specific tools:
 
+![ollmcp model selection interface](misc/ollmpc-model-selection.jpg)
+
 - Enter **numbers** separated by commas (e.g. `1,3,5`) to toggle specific tools
 - Enter **ranges** of numbers (e.g. `5-8`) to toggle multiple consecutive tools
 - Enter **S + number** (e.g. `S1`) to toggle all tools in a specific server
@@ -125,6 +133,8 @@ The tool and server selection interface allows you to enable or disable specific
 ### Model Selection
 
 The model selection interface shows all available models in your Ollama installation:
+
+![ollmcp tool and server selection interface](misc/ollmpc-tool-and-server-selection.jpg)
 
 - Enter the **number** of the model you want to use
 - `s` or `save` - Save the model selection and return to chat
