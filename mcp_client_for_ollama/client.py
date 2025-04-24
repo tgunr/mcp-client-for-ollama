@@ -3,10 +3,11 @@ import asyncio
 import json
 import os
 import shutil
+import sys
 from contextlib import AsyncExitStack
-from dotenv import load_dotenv
 from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.client.stdio import stdio_client
+from mcp_client_for_ollama import __version__
 import ollama
 from ollama import ChatResponse
 from pathlib import Path
@@ -24,12 +25,10 @@ import aiohttp
 from datetime import datetime
 import dateutil.parser
 
-load_dotenv()  # load environment variables from .env
-
 # Default Claude config file location
 DEFAULT_CLAUDE_CONFIG = os.path.expanduser("~/Library/Application Support/Claude/claude_desktop_config.json")
 # Default config directory and filename for MCP client for Ollama
-DEFAULT_CONFIG_DIR = os.path.expanduser("~/.config/mcp-client-for-ollama")
+DEFAULT_CONFIG_DIR = os.path.expanduser("~/.config/ollmcp")
 if not os.path.exists(DEFAULT_CONFIG_DIR):
     os.makedirs(DEFAULT_CONFIG_DIR)
 
@@ -289,6 +288,14 @@ class MCPClient:
         for i, arg in enumerate(args_list):
             if arg == "--directory" and i + 1 < len(args_list):
                 directory = args_list[i + 1]
+                if os.path.isfile(directory):
+                    # If it's a file (like a Python script), use its parent directory
+                    directory = os.path.dirname(directory)
+                    if os.path.exists(directory):
+                        # Modify the args list to use the directory instead of the file
+                        args_list[i+1] = directory
+                        return True, directory
+                    
                 if not os.path.exists(directory):
                     return False, directory
         
@@ -309,6 +316,15 @@ class MCPClient:
                 server_paths = [server_paths]
                 
             for path in server_paths:
+                # Check if the path exists and is a file
+                if not os.path.exists(path):
+                    self.console.print(f"[yellow]Warning: Server path '{path}' does not exist. Skipping.[/yellow]")
+                    continue
+                    
+                if not os.path.isfile(path):
+                    self.console.print(f"[yellow]Warning: Server path '{path}' is not a file. Skipping.[/yellow]")
+                    continue
+                
                 all_servers.append({
                     "type": "script",
                     "path": path,
@@ -317,71 +333,87 @@ class MCPClient:
         
         # Add servers from config file if provided
         if config_path:
-            server_configs = self.load_server_config(config_path)
-            for name, config in server_configs.items():
-                # Skip disabled servers
-                if config.get('disabled', False):
-                    continue
-                
-                # Check if required directory exists
-                args = config.get("args", [])
-                dir_exists, missing_dir = self.directory_exists(args)
-                
-                if not dir_exists:
-                    self.console.print(f"[yellow]Warning: Server '{name}' specifies a directory that doesn't exist: {missing_dir}[/yellow]")
-                    self.console.print(f"[yellow]Skipping server '{name}'[/yellow]")
-                    continue
+            try:
+                server_configs = self.load_server_config(config_path)
+                for name, config in server_configs.items():
+                    # Skip disabled servers
+                    if config.get('disabled', False):
+                        continue
                     
-                all_servers.append({
-                    "type": "config",
-                    "name": name,
-                    "config": config
-                })
+                    # Check if required directory exists
+                    args = config.get("args", [])
+                    
+                    # Fix common issues with directory arguments
+                    for i, arg in enumerate(args):
+                        if arg == "--directory" and i + 1 < len(args):
+                            dir_path = args[i+1]
+                            # If the path is a Python file, use its directory instead
+                            if os.path.isfile(dir_path) and (dir_path.endswith('.py') or dir_path.endswith('.js')):
+                                self.console.print(f"[yellow]Warning: Server '{name}' specifies a file as directory: {dir_path}[/yellow]")
+                                self.console.print(f"[green]Automatically fixing to use parent directory instead[/green]")
+                                args[i+1] = os.path.dirname(dir_path) or '.'
+                    
+                    # Now check if directory exists with possibly fixed paths
+                    dir_exists, missing_dir = self.directory_exists(args)
+                    
+                    if not dir_exists:
+                        self.console.print(f"[yellow]Warning: Server '{name}' specifies a directory that doesn't exist: {missing_dir}[/yellow]")
+                        self.console.print(f"[yellow]Skipping server '{name}'[/yellow]")
+                        continue
+                        
+                    all_servers.append({
+                        "type": "config",
+                        "name": name,
+                        "config": config
+                    })
+            except Exception as e:
+                self.console.print(f"[red]Error loading server configurations: {str(e)}[/red]")
         
         if not all_servers:
-            raise ValueError("No servers specified. Please provide server paths or a config file.")
+            self.console.print("[yellow]No servers specified or all servers were invalid. The client will continue without tool support.[/yellow]")
+            return
             
         # Connect to each server
         for server in all_servers:
             server_name = server["name"]
             self.console.print(f"[cyan]Connecting to server: {server_name}[/cyan]")
             
-            if server["type"] == "script":
-                # Handle direct script path
-                path = server["path"]
-                is_python = path.endswith('.py')
-                is_js = path.endswith('.js')
-                
-                if not (is_python or is_js):
-                    self.console.print(f"[yellow]Warning: Server script {path} must be a .py or .js file. Skipping.[/yellow]")
-                    continue
-                    
-                command = "python" if is_python else "node"
-                server_params = StdioServerParameters(
-                    command=command,
-                    args=[path],
-                    env=None
-                )
-            else:
-                # Handle config-based server
-                server_config = server["config"]
-                command = server_config.get("command")
-                
-                # Validate the command exists in PATH
-                if not shutil.which(command):
-                    self.console.print(f"[yellow]Warning: Command '{command}' for server '{server_name}' not found in PATH. Skipping.[/yellow]")
-                    continue
-                    
-                args = server_config.get("args", [])
-                env = server_config.get("env")
-                
-                server_params = StdioServerParameters(
-                    command=command,
-                    args=args,
-                    env=env
-                )
-            
             try:
+                if server["type"] == "script":
+                    # Handle direct script path
+                    path = server["path"]
+                    is_python = path.endswith('.py')
+                    is_js = path.endswith('.js')
+                    
+                    if not (is_python or is_js):
+                        self.console.print(f"[yellow]Warning: Server script {path} must be a .py or .js file. Skipping.[/yellow]")
+                        continue
+                        
+                    command = "python" if is_python else "node"
+                    server_params = StdioServerParameters(
+                        command=command,
+                        args=[path],
+                        env=None
+                    )
+                else:
+                    # Handle config-based server
+                    server_config = server["config"]
+                    command = server_config.get("command")
+                    
+                    # Validate the command exists in PATH
+                    if not shutil.which(command):
+                        self.console.print(f"[yellow]Warning: Command '{command}' for server '{server_name}' not found in PATH. Skipping.[/yellow]")
+                        continue
+                        
+                    args = server_config.get("args", [])
+                    env = server_config.get("env")
+                    
+                    server_params = StdioServerParameters(
+                        command=command,
+                        args=args,
+                        env=env
+                    )
+                
                 # Connect to this server
                 stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
                 stdio, write = stdio_transport
@@ -904,9 +936,10 @@ class MCPClient:
                     
                     # If it's a "model not found" error, suggest how to fix it
                     if "not found" in error_msg.lower() and "try pulling it first" in error_msg.lower():
-                        model_name = self.model
-                        self.console.print(f"\n[yellow]Try running this command to download the model:[/yellow]")
+                        model_name = self.model                        
+                        self.console.print(f"\n[yellow]To download this model, run the following command in a new terminal window:[/yellow]")
                         self.console.print(f"[bold cyan]ollama pull {model_name}[/bold cyan]\n")
+                        self.console.print(f"[yellow]Or, you can use a different model by typing[/yellow] [bold cyan]model[/bold cyan] [yellow]or[/yellow] [bold cyan]m[/bold cyan] [yellow]to select from available models[/yellow]\n")                        
 
             except ollama.ConnectionError as e:
                 self.console.print(Panel(f"[bold red]Connection Error:[/bold red] {str(e)}", 
@@ -1138,7 +1171,10 @@ async def main():
                             help=f"Auto-discover servers from Claude's config at {DEFAULT_CLAUDE_CONFIG} - Default option")
     # Model options
     model_group = parser.add_argument_group("Model Options")
-    model_group.add_argument("--model", default="qwen2.5:latest", help="Ollama model to use. For example: 'qwen2.5:latest'")
+    model_group.add_argument("--model", default="qwen2.5:7b", help="Ollama model to use. For example: 'qwen2.5:7b'")
+    
+    # Add version flag
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     
      # Add a function to modify args after parsing
     def parse_args_with_defaults():

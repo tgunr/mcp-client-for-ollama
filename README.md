@@ -1,11 +1,11 @@
 # MCP Client for Ollama
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
-![Tool Terminal Interface](https://img.shields.io/badge/Tool-Terminal%20Interface-red.svg)
+![PyPI - Python Version](https://img.shields.io/pypi/v/ollmcp?label=ollmcp-pypi)
+![PyPI - Python Version](https://img.shields.io/pypi/v/mcp-client-for-ollama?label=mcp-client-for-ollama-pypi)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-
-A powerful Python client for interacting with Model Context Protocol (MCP) servers using Ollama models, enabling tool use for local LLMs.
+A simple yet powerful Python client for interacting with Model Context Protocol (MCP) servers using Ollama, allowing local LLMs to use tools.
 
 ## Overview
 
@@ -13,17 +13,18 @@ This project provides a robust Python-based client that connects to one or more 
 
 This implementation was adapted from the [Model Context Protocol quickstart guide](https://modelcontextprotocol.io/quickstart/client) and customized to work with Ollama, providing a user-friendly interface for interacting with LLMs that support function calling.
 
-## Key Features
+## Features
 
 - 🌐 **Multi-Server Support**: Connect to multiple MCP servers simultaneously
-- 🎨 **Rich Terminal Interface**: Colorful, interactive console UI with Rich library
-- 🛠️ **Tool Management**: Enable/disable specific tools or entire servers during a session
-- 🧠 **Context Management**: Control conversation memory with configurable context retention
-- 🔄 **Cross-Language Support**: Work with Python and JavaScript MCP servers
+- 🎨 **Rich Terminal Interface**: Interactive console UI
+- 🛠️ **Tool Management**: Enable/disable specific tools or entire servers during chat sessions
+- 🧠 **Context Management**: Control conversation memory with configurable retention settings
+- 🔄 **Cross-Language Support**: Seamlessly work with both Python and JavaScript MCP servers
 - 🔍 **Auto-Discovery**: Automatically find and use Claude's existing MCP server configurations
-- 🔄 **Model Switching**: List and switch between any installed Ollama model during a session
-- 💾 **Configuration Management**: Save and load tool configurations between sessions
-- 📊 **Context Statistics**: Track token usage and conversation history
+- 🚀 **Dynamic Model Switching**: Switch between any installed Ollama model without restarting
+- 💾 **Configuration Persistence**: Save and load tool preferences between sessions
+- 📊 **Usage Analytics**: Track token consumption and conversation history metrics
+- 🔌 **Plug-and-Play**: Works immediately with standard MCP-compliant tool servers
 
 ## Requirements
 
@@ -31,36 +32,33 @@ This implementation was adapted from the [Model Context Protocol quickstart guid
 - **Ollama** running locally ([Installation guide](https://ollama.com/download))
 - **UV package manager** ([Installation guide](https://github.com/astral-sh/uv))
 
-## Installation
+## Quick Start
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/jonigl/mcp-client-for-ollama.git
-   cd mcp-client-for-ollama
-   ```
+**Option 1:** Install with pip
+```bash
+pip install ollmcp
+ollmcp
+```
 
-2. Create and activate a virtual environment with UV:
-   ```bash
-   uv venv
-   source .venv/bin/activate
-   ```
+**Option 2:** One-step install and run
+```bash
+uvx ollmcp
+```
 
-3. Install the package:
-   ```bash
-   uv pip install .
-   ```
-
-4. Ensure Ollama is running:
-   ```bash
-   ollama serve
-   ```
+**Option 3:** Run from repository
+```bash
+git clone https://github.com/jonigl/mcp-client-for-ollama.git
+cd mcp-client-for-ollama
+uv venv && source .venv/bin/activate
+uv pip install .
+ollmcp
+```
 
 ## Usage
 
-Run the client with:
-
+Run with default settings:
 ```bash
-uv run client.py [options]
+ollmcp
 ```
 
 If you don't provide any options, the client will use auto-discovery mode to find MCP servers from Claude's configuration.
@@ -73,33 +71,29 @@ If you don't provide any options, the client will use auto-discovery mode to fin
 - `--auto-discovery`: Auto-discover servers from Claude's default config file (default behavior if no other options provided).
 
 #### Model Options:
-- `--model`: Ollama model to use (default: "qwen2.5:latest")
+- `--model`: Ollama model to use (default: "qwen2.5:7b")
 
 ### Usage Examples
 
 Connect to a single server:
 ```bash
-uv run client.py --mcp-server /path/to/weather.py --model llama3:latest
+uv run client.py --mcp-server /path/to/weather.py --model llama3.2:3b
 ```
 
 Connect to multiple servers:
 ```bash
-uv run client.py --mcp-server /path/to/weather.py --mcp-server /path/to/filesystem.js --model qwen2:latest
+uv run client.py --mcp-server /path/to/weather.py --mcp-server /path/to/filesystem.js --model qwen2.5:latest
+
 ```
 
 Use a JSON configuration file:
 ```bash
-uv run client.py --servers-json /path/to/servers.json --model llama3:latest
-```
-
-Use Claude's default server configuration:
-```bash
-uv run client.py --auto-discovery --model llama3:latest
+uv run client.py --servers-json /path/to/servers.json --model llama3.2:1b
 ```
 
 ## Interactive Commands
 
-During the chat session, the following commands are available:
+During chat, use these commands:
 
 | Command | Shortcut | Description |
 |---------|----------|-------------|
@@ -115,9 +109,9 @@ During the chat session, the following commands are available:
 | `reset-config` | `rc` | Reset configuration to defaults (all tools enabled) |
 | `quit` | `q` | Exit the client |
 
-### Tool Selection Interface
+### Tool and Server Selection
 
-The tool selection interface allows you to enable or disable specific tools:
+The tool and server selection interface allows you to enable or disable specific tools:
 
 - Enter **numbers** separated by commas (e.g. `1,3,5`) to toggle specific tools
 - Enter **ranges** of numbers (e.g. `5-8`) to toggle multiple consecutive tools
@@ -128,7 +122,7 @@ The tool selection interface allows you to enable or disable specific tools:
 - `s` or `save` - Save changes and return to chat
 - `q` or `quit` - Cancel changes and return to chat
 
-### Model Selection Interface
+### Model Selection
 
 The model selection interface shows all available models in your Ollama installation:
 
@@ -141,9 +135,9 @@ The model selection interface shows all available models in your Ollama installa
 The client supports saving and loading tool configurations between sessions:
 
 - When using `save-config`, you can provide a name for the configuration or use the default
-- Configurations are stored in `~/.config/mcp-client-for-ollama/` directory
-- The default configuration is saved as `~/.config/mcp-client-for-ollama/config.json`
-- Named configurations are saved as `~/.config/mcp-client-for-ollama/{name}.json`
+- Configurations are stored in `~/.config/ollmcp/` directory
+- The default configuration is saved as `~/.config/ollmcp/config.json`
+- Named configurations are saved as `~/.config/ollmcp/{name}.json`
 
 The configuration saves:
 - Current model selection
@@ -173,46 +167,18 @@ The JSON configuration file should follow this format:
 Claude's configuration file is typically located at:
 `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-## Context Management
+## Compatible Models
 
-The client provides several ways to manage conversation context:
+The following Ollama models work well with tool use:
 
-- **Context Retention**: Toggle with the `context` command to enable/disable conversation memory
-- **Context Statistics**: View token usage and conversation history with the `contextinfo` command
-- **Context Clearing**: Clear the conversation history with the `clear` command
+- qwen2.5
+- llama3.3
+- llama3.2
+- llama3.1
+- mistral
 
-## Advanced Usage
+For a complete list of Ollama models with tool use capabilities, visit the [official Ollama models page](https://ollama.com/search?c=tools).
 
-### Creating Custom MCP Servers
-
-You can create your own MCP server by:
-1. Creating a Python or JavaScript file that implements the MCP protocol
-2. Adding it to the client with `--mcp-server` or through a JSON configuration
-
-Example Python MCP server:
-
-```python
-from mcp.server.fastmcp import FastMCP
-
-# Initialize FastMCP server
-mcp = FastMCP("weather")
-
-# Register a tool
-@mcp.tool()
-async def get_forecast(city: str) -> str:
-    """Get weather forecast for a location.
-
-    Args:
-        city: str: The name of the city.
-    """    
-    # Simulate a weather forecast
-    forecast = f"The weather in {city} is sunny with a high of 25°C."
-    return forecast
-
-if __name__ == "__main__":
-    # Initialize and run the server
-    mcp.run(transport='stdio')
-```
 
 ### How Tool Calls Work
 
@@ -223,43 +189,17 @@ if __name__ == "__main__":
    - Sends the tool result back to Ollama
    - Shows the final response
 
-### Compatible Ollama Models
-
-Models that work well with tool use include:
-- llama3
-- qwen2.5
-- mistral
-- llava
-
-Make sure your model is recent enough to support the function calling API.
-
-## Troubleshooting
-
-### Common Issues
-
-- **"Ollama is not running"**: Start Ollama with `ollama serve`
-- **"Model not found"**: Pull the model with `ollama pull <model-name>`
-- **"No tools available"**: Check that your MCP server paths are correct
-- **"Connection Error"**: Ensure the MCP server script is executable and free of syntax errors
-
-### Debugging
-
-For more detailed logs, you can run the client in debug mode:
-
-```bash
-PYTHONPATH=. LOGLEVEL=DEBUG uv run client.py --mcp-server /path/to/server.py
-```
-
-## Contributing
-
-Contributions are welcome! Feel free to submit pull requests or open issues for bugs and feature requests.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
 - [Model Context Protocol](https://modelcontextprotocol.io/) for the specification and examples
 - [Ollama](https://ollama.com/) for the local LLM runtime
 - [Rich](https://rich.readthedocs.io/) for the terminal user interface
+
+---
+
+Made with ❤️ by [jonigl](https://github.com/jonigl)

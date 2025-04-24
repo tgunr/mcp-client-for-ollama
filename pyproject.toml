@@ -1,9 +1,13 @@
 [project]
 name = "mcp-client-for-ollama"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.1.11"
+description = "MCP Client for Ollama - A client for connecting to Model Context Protocol servers using Ollama"
 readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Jonathan Löwenstern"}
+]
 dependencies = [
     "aiohttp>=3.11.18",
     "mcp>=1.6.0",
@@ -13,3 +17,15 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "rich>=14.0.0",
 ]
+
+[project.scripts]
+mcp-client-for-ollama = "mcp_client_for_ollama.cli:run_cli"
+ollmcp = "mcp_client_for_ollama.cli:run_cli"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/jonigl/mcp-client-for-ollama"
+Issues = "https://github.com/jonigl/mcp-client-for-ollama/issues"
