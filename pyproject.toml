@@ -4,7 +4,7 @@ version = "0.1.11"
 description = "MCP Client for Ollama - A client for connecting to Model Context Protocol servers using Ollama"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Jonathan Löwenstern"}
 ]
@@ -29,3 +29,6 @@ build-backend = "setuptools.build_meta"
 [project.urls]
 Homepage = "https://github.com/jonigl/mcp-client-for-ollama"
 Issues = "https://github.com/jonigl/mcp-client-for-ollama/issues"
+
+[tool.setuptools]
+packages = ["mcp_client_for_ollama"]
