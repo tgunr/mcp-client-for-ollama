@@ -9,7 +9,7 @@
 
 A simple yet powerful Python client for interacting with Model Context Protocol (MCP) servers using Ollama, allowing local LLMs to use tools.
 
-![ollmpc usage demo gif](https://raw.githubusercontent.com/jonigl/mcp-client-for-ollama/main/misc/ollmcp-demo.gif)
+![ollmpc usage demo gif](https://raw.githubusercontent.com/jonigl/mcp-client-for-ollama/v0.2.5/misc/ollmcp-demo.gif)
 
 ## Overview
 

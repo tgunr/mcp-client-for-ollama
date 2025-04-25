@@ -2,7 +2,7 @@
 
 A command-line interface for connecting to MCP servers using Ollama.
 
-![ollmpc usage demo gif](https://raw.githubusercontent.com/jonigl/mcp-client-for-ollama/main/misc/ollmcp-demo.gif)
+![ollmpc usage demo gif](https://raw.githubusercontent.com/jonigl/mcp-client-for-ollama/v0.2.5/misc/ollmcp-demo.gif)
 
 ## Installation
 
