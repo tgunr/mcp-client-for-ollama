@@ -368,7 +368,7 @@ wheels = [
 
 [[package]]
 name = "mcp-client-for-ollama"
-version = "0.2.3"
+version = "0.2.4"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
