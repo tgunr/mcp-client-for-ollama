@@ -9,7 +9,7 @@
 
 A simple yet powerful Python client for interacting with Model Context Protocol (MCP) servers using Ollama, allowing local LLMs to use tools.
 
-![ollmpc usage demo gif](https://github.com/jonigl/mcp-client-for-ollama/blob/main/misc/ollmcp-demo.gif)
+![ollmpc usage demo gif](https://github.com/jonigl/mcp-client-for-ollama/raw/main/misc/ollmcp-demo.gif)
 
 ## Overview
 
@@ -100,7 +100,7 @@ ollmcp --servers-json /path/to/servers.json --model llama3.2:1b
 
 During chat, use these commands:
 
-![ollmcp main interface](https://github.com/jonigl/mcp-client-for-ollama/blob/main/misc/ollmcp-welcome.jpg)
+![ollmcp main interface](https://github.com/jonigl/mcp-client-for-ollama/blob/main/misc/ollmcp-welcome.jpg?raw=true)
 
 | Command | Shortcut | Description |
 |---------|----------|-------------|
@@ -120,7 +120,7 @@ During chat, use these commands:
 
 The tool and server selection interface allows you to enable or disable specific tools:
 
-![ollmcp model selection interface](https://github.com/jonigl/mcp-client-for-ollama/raw/main/misc/ollmpc-model-selection.jpg)
+![ollmcp model selection interface](https://github.com/jonigl/mcp-client-for-ollama/blob/main/misc/ollmpc-model-selection.jpg?raw=true)
 
 - Enter **numbers** separated by commas (e.g. `1,3,5`) to toggle specific tools
 - Enter **ranges** of numbers (e.g. `5-8`) to toggle multiple consecutive tools
@@ -135,7 +135,7 @@ The tool and server selection interface allows you to enable or disable specific
 
 The model selection interface shows all available models in your Ollama installation:
 
-![ollmcp tool and server selection interface](https://github.com/jonigl/mcp-client-for-ollama/blob/main/misc/ollmpc-tool-and-server-selection.jpg)
+![ollmcp tool and server selection interface](https://github.com/jonigl/mcp-client-for-ollama/blob/main/misc/ollmpc-tool-and-server-selection.jpg?raw=true)
 
 - Enter the **number** of the model you want to use
 - `s` or `save` - Save the model selection and return to chat
