@@ -33,6 +33,7 @@ This implementation was adapted from the [Model Context Protocol quickstart guid
 - 🖥️ **Streaming Responses**: View model outputs in real-time as they're generated
 - 🛠️ **Tool Management**: Enable/disable specific tools or entire servers during chat sessions
 - 🧠 **Context Management**: Control conversation memory with configurable retention settings
+- 🤔 **Thinking Mode**: Advanced reasoning capabilities with visible thought processes for supported models (deepseek-r1, qwen3)
 - 🔄 **Cross-Language Support**: Seamlessly work with both Python and JavaScript MCP servers
 - 🔍 **Auto-Discovery**: Automatically find and use Claude's existing MCP server configurations
 - 🎛️ **Dynamic Model Switching**: Switch between any installed Ollama model without restarting
@@ -130,21 +131,22 @@ ollmcp --host http://localhost:22545 --servers-json /path/to/servers.json --mode
 
 During chat, use these commands:
 
-![ollmcp main interface](https://github.com/jonigl/mcp-client-for-ollama/blob/main/misc/ollmcp-welcome.jpg?raw=true)
-
-| Command        | Shortcut       | Description                                         |
-| -------------- | -------------- | --------------------------------------------------- |
-| `help`         | `h`            | Display help and available commands                 |
-| `tools`        | `t`            | Open the tool selection interface                   |
-| `model`        | `m`            | List and select a different Ollama model            |
-| `context`      | `c`            | Toggle context retention (on/off)                   |
-| `clear`        | `cc`           | Clear conversation history and context              |
-| `context-info` | `ci`           | Display context statistics                          |
-| `cls`          | `clear-screen` | Clear the terminal screen                           |
-| `save-config`  | `sc`           | Save current tool and model configuration to a file |
-| `load-config`  | `lc`           | Load tool and model configuration from a file       |
-| `reset-config` | `rc`           | Reset configuration to defaults (all tools enabled) |
-| `quit`         | `q`            | Exit the client                                     |
+![ollmcp main interface](https://github.com/jonigl/mcp-client-for-ollama/blob/main/misc/ollmcp-welcome.png?raw=true)
+| Command          | Shortcut         | Description                                         |
+|------------------|------------------|-----------------------------------------------------|
+| `help`           | `h`              | Display help and available commands                 |
+| `tools`          | `t`              | Open the tool selection interface                   |
+| `model`          | `m`              | List and select a different Ollama model            |
+| `context`        | `c`              | Toggle context retention                            |
+| `thinking-mode`  | `tm`             | Toggle thinking mode (deepseek-r1, qwen3 only)      |
+| `show-thinking`  | `st`             | Toggle thinking text visibility                     |
+| `clear`          | `cc`             | Clear conversation history and context              |
+| `context-info`   | `ci`             | Display context statistics                          |
+| `cls`            | `clear-screen`   | Clear the terminal screen                           |
+| `save-config`    | `sc`             | Save current tool and model configuration to a file |
+| `load-config`    | `lc`             | Load tool and model configuration from a file       |
+| `reset-config`   | `rc`             | Reset configuration to defaults (all tools enabled) |
+| `quit`, `exit`   | `q` or `Ctrl+D`  | Exit the client                                     |
 
 ### Tool and Server Selection
 
@@ -173,6 +175,9 @@ The model selection interface shows all available models in your Ollama installa
 
 ## Configuration Management
 
+> [!TIP]
+> It will automatically load the default configuration from `~/.config/ollmcp/config.json` if it exists.
+
 The client supports saving and loading tool configurations between sessions:
 
 - When using `save-config`, you can provide a name for the configuration or use the default
@@ -185,6 +190,7 @@ The configuration saves:
 - Current model selection
 - Enabled/disabled status of all tools
 - Context retention settings
+- Thinking mode settings
 
 ## Server Configuration Format
 
