@@ -3,7 +3,7 @@
 import os
 
 # Default Claude config file location
-DEFAULT_CLAUDE_CONFIG = os.path.expanduser("~/Library/Application Support/Claude/claude_desktop_config.json")
+DEFAULT_CLAUDE_CONFIG = os.path.expanduser("~/.claude.json")
 
 # Default config directory and filename for MCP client for Ollama
 DEFAULT_CONFIG_DIR = os.path.expanduser("~/.config/ollmcp")
@@ -13,7 +13,7 @@ if not os.path.exists(DEFAULT_CONFIG_DIR):
 DEFAULT_CONFIG_FILE = "config.json"
 
 # Default model
-DEFAULT_MODEL = "qwen2.5:7b"
+DEFAULT_MODEL = "qwen3:latest"
 
 # Default ollama lcoal url for API requests
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
