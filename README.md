@@ -38,11 +38,13 @@
   - [Advanced Model Configuration](#advanced-model-configuration)
   - [Server Reloading for Development](#server-reloading-for-development)
   - [Human-in-the-Loop (HIL) Tool Execution](#human-in-the-loop-hil-tool-execution)
+  - [Performance Metrics](#performance-metrics)
 - [Autocomplete and Prompt Features](#autocomplete-and-prompt-features)
 - [Configuration Management](#configuration-management)
 - [Server Configuration Format](#server-configuration-format)
 - [Compatible Models](#compatible-models)
 - [Where Can I Find More MCP Servers?](#where-can-i-find-more-mcp-servers)
+- [Related Projects](#related-projects)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
 
@@ -70,7 +72,7 @@ MCP Client for Ollama (`ollmcp`) is a modern, interactive terminal application (
 - 🔄 **Server Reloading**: Hot-reload MCP servers during development without restarting the client
 - ✨ **Fuzzy Autocomplete**: Interactive, arrow-key command autocomplete with descriptions
 - 🏷️ **Dynamic Prompt**: Shows current model, thinking mode, and enabled tools
-- 📊 **Usage Analytics**: Track token consumption and conversation history metrics
+- 📊 **Performance Metrics**: Detailed model performance data after each query, including duration timings and token counts
 - 🔌 **Plug-and-Play**: Works immediately with standard MCP-compliant tool servers
 - 🔔 **Update Notifications**: Automatically detects when a new version is available
 - 🖥️ **Modern CLI with Typer**: Grouped options, shell autocompletion, and improved help output
@@ -246,6 +248,7 @@ During chat, use these commands:
 | `thinking-mode`  | `tm`             | Toggle thinking mode (deepseek-r1, qwen3 only)      |
 | `show-thinking`  | `st`             | Toggle thinking text visibility                     |
 | `show-tool-execution` | `ste`       | Toggle tool execution display visibility            |
+| `show-metrics`   | `sm`             | Toggle performance metrics display                  |
 | `human-in-loop`  | `hil`            | Toggle Human-in-the-Loop confirmations for tool execution |
 | `clear`          | `cc`             | Clear conversation history and context              |
 | `context-info`   | `ci`             | Display context statistics                          |
@@ -365,19 +368,9 @@ The Human-in-the-Loop feature provides an additional safety layer by allowing yo
 When HIL is enabled, you'll see a confirmation prompt before each tool execution:
 
 **Example:**
-```
-🧑‍💻 Human-in-the-Loop Confirmation
-Tool to execute: weather.get_weather
-Arguments:
-  • city: Miami
 
-Options:
-  y/yes - Execute the tool call
-  n/no - Skip this tool call
-  disable - Disable HIL confirmations permanently
+![ollmcp HIL confirmation screenshot](https://github.com/jonigl/mcp-client-for-ollama/blob/main/misc/ollmcp-hil-feature.png?raw=true)
 
-What would you like to do? (y):
-```
 
 ### Human-in-the-Loop (HIL) Configuration
 
@@ -392,6 +385,37 @@ What would you like to do? (y):
 - **Awareness**: Understand what actions the model is attempting to perform
 - **Selective Control**: Choose which operations to allow on a case-by-case basis
 - **Peace of Mind**: Full visibility and control over automated actions
+
+### Performance Metrics
+
+The Performance Metrics feature displays detailed model performance data after each query in a bordered panel. The metrics show duration timings, token counts, and generation rates directly from Ollama's response.
+
+**Displayed Metrics:**
+- `total duration`: Total time spent generating the complete response (seconds)
+- `load duration`: Time spent loading the model (milliseconds)
+- `prompt eval count`: Number of tokens in the input prompt
+- `prompt eval duration`: Time spent evaluating the input prompt (milliseconds)
+- `eval count`: Number of tokens generated in the response
+- `eval duration`: Time spent generating the response tokens (seconds)
+- `prompt eval rate`: Speed of input prompt processing (tokens/second)
+- `eval rate`: Speed of response token generation (tokens/second)
+
+**Example:**
+![ollmcp ollama performance metrics screenshot](https://github.com/jonigl/mcp-client-for-ollama/blob/main/misc/ollmcp-ollama-performance-metrics.png?raw=true)
+
+#### Performance Metrics Configuration
+
+- **Default State**: Metrics are disabled by default for cleaner output
+- **Toggle Command**: Use `show-metrics` or `sm` to enable/disable metrics display
+- **Persistent Settings**: Metrics preference is saved with your configuration
+
+**Benefits:**
+- **Performance Monitoring**: Track model efficiency and response times
+- **Token Tracking**: Monitor actual token consumption for analysis
+- **Benchmarking**: Compare performance across different models
+
+> [!NOTE]
+> **Data Source**: All metrics come directly from Ollama's response, ensuring accuracy and reliability.
 
 ## Autocomplete and Prompt Features
 
@@ -448,6 +472,7 @@ The configuration saves:
 - Context retention settings
 - Thinking mode settings
 - Tool execution display preferences
+- Performance metrics display preferences
 - Human-in-the-Loop confirmation settings
 
 ## Server Configuration Format
@@ -517,6 +542,10 @@ For a complete list of Ollama models with tool use capabilities, visit the [offi
 You can explore a collection of MCP servers in the official [MCP Servers repository](https://github.com/modelcontextprotocol/servers).
 
 This repository contains reference implementations for the Model Context Protocol, community-built servers, and additional resources to enhance your LLM tool capabilities.
+
+## Related Projects
+
+- **[Ollama MCP Bridge](https://github.com/jonigl/ollama-mcp-bridge)** - A Python API layer that sits in front of Ollama, automatically adding tools from multiple MCP servers to every chat request. This project provides a transparent proxy solution that pre-loads all MCP servers at startup and seamlessly integrates their tools into the Ollama API.
 
 ## License
 
